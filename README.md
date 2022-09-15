@@ -17,6 +17,8 @@ Step 2: Install dependencies
 sudo apt-get virtualenv
 virtualenv venv
 source ./venv/bin/activate 
+
+pip install -r requirements.txt
 ```
 
 
