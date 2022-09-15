@@ -14,7 +14,9 @@ import adult
 
 df=adult.read_data()
 
-
+backdoor={'Age':[],'sex':[],'country':[],'marital':['country','Age','sex'],'edu':['Age','sex','country'],
+              'class':['Age','sex','country'],'occupation':['Age','sex','country'],
+              'hours':['Age','sex','country']}
 
 X=df
 

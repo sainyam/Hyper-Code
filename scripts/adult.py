@@ -3,6 +3,9 @@ import numpy as np
 
 def read_data():
     df=pd.read_csv('./datasets/adult.txt',delimiter=' ')
+    backdoor={'Age':[],'sex':[],'country':[],'marital':['country','Age','sex'],'edu':['Age','sex','country'],
+              'class':['Age','sex','country'],'occupation':['Age','sex','country'],
+              'hours':['Age','sex','country']}
 
 
 
@@ -10,9 +13,6 @@ def read_data():
     from sklearn.utils import resample
 
 
-    backdoor={'Age':[],'sex':[],'country':[],'marital':['country','Age','sex'],'edu':['Age','sex','country'],
-              'class':['Age','sex','country'],'occupation':['Age','sex','country'],
-              'hours':['Age','sex','country']}
 
     samp=df['marital']
 

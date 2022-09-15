@@ -482,7 +482,7 @@ for num_var in [5,6,7,8,9,10]:#[2]:#[10000,100000,200000,400000,600000,800000,10
     maxval=0
     for lst in domain_lst:
         print(lst)
-        (beta_lst,[[beta0]])=get_logistic_param(df,conditionals,[target],[1])
+        #(beta_lst,[[beta0]])=get_logistic_param(df,conditionals,[target],[1])
         print (conditionals,beta_lst)
         t=0
         curr=0

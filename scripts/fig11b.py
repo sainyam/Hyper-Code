@@ -374,7 +374,7 @@ scores={}
 times={}
 opt_times={}
 opt_scores={}
-num_bins=5
+num_bins=2
 for size in [10000,20000,100000,200000,400000,600000,800000,1000000]:
     print (num_bins)
     i=0

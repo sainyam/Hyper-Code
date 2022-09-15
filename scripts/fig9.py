@@ -458,10 +458,10 @@ print(opt_times)
 
 
 hyper=[]
-gt=[]
+baseline=[]
 for num_bins in [1,2,4,6,8,10]:
     hyper.append(scores[num_bins])
-    gt.append(opt_scores[num_bins])
+    baseline.append(opt_scores[num_bins])
 
 import pandas as pd
 from functools import reduce
@@ -476,11 +476,11 @@ gtname=[1,2,4,6,8,10]
 #gtname=[ 'Age',  'Saving','Status','Sex', 'Housing']
 
 
-baseline=[0.640,0.76,0.91,0.92, 0.95, 0.98]
+#baseline=[0.640,0.76,0.91,0.92, 0.95, 0.98]
 baselinename=[1,2,4,6,8,10]
 
 
-baseline_all=[0.64,0.44, 0.57,0.43]
+#baseline_all=[0.64,0.44, 0.57,0.43]
 baselinename_all=[1,2,4,6,8,10]
 
 
@@ -556,7 +556,7 @@ baseline=[]
 
 for num_bins in [1,2,4,6,8,10]:
     hyper.append(times[num_bins])
-    gt.append(opt_times[num_bins])
+    baseline.append(opt_times[num_bins])
 
 
 hypername=[1,2,4,6,8,10]
