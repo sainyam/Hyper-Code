@@ -524,5 +524,5 @@ plt.fill_between(x, y1, y1, alpha=0.15,color='forestgreen')
 plt.legend()
 plt.xlabel('Dataset Size (in millions)',labelpad=30)
 plt.ylabel('Time (in seconds)',labelpad=0)
-plt.savefig('11b.pdf', bbox_inches='tight')
+plt.savefig('../freshRuns/11b.pdf', bbox_inches='tight')
 

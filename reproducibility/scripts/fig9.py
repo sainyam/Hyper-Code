@@ -546,7 +546,7 @@ matplotlib.rcParams['hatch.linewidth'] = 0.2
 figure = plt.gcf() # get current figure
 figure.set_size_inches(7,7.5)
 fig.tight_layout()
-plt.savefig('9a.pdf')
+plt.savefig('../freshRuns/9a.pdf')
 
 
 
@@ -634,4 +634,4 @@ matplotlib.rcParams['hatch.linewidth'] = 0.2
 figure = plt.gcf() # get current figure
 figure.set_size_inches(7,7.5)
 fig.tight_layout()
-plt.savefig('9b.pdf')
+plt.savefig('../freshRuns/9b.pdf')
