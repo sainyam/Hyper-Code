@@ -9,9 +9,12 @@ import pandas as pd
 from collections import namedtuple, Counter
 import copy
 
-
+import sys,json
+config_file=open('../../config.json','r')
+configs=json.load(config_file)
+print (configs)
 # In[162]:
-
+max_time=int(configs['max_runtime'])*60*60
 
 def random_logit(x):
     z = 1./(1+np.exp(-x))
@@ -375,6 +378,7 @@ def optimization(df,A,aval,Adomain,klst,kval,alpha,betalst,beta0):
 # In[199]:
 scores={}
 times={}
+total_time=0
 opt_times={}
 opt_scores={}
 for num_bins in [1,2,4,6,8,10]:
@@ -408,7 +412,10 @@ for num_bins in [1,2,4,6,8,10]:
     scores[num_bins],gt_score=optimization(df,A,aval,Adomain,klst,kval,0.8,beta_lst,beta0)
     end=time.time()
     times[num_bins]=end-start
-
+    if total_time >= max_time:
+        opt_times[num_bins]=opt_times[num_bins-2]*opt_times[2]
+        opt_scores[num_bins]=opt_scores[num_bins-2]
+        continue
     start=time.time()
     domain_lst=get_combination(Adomain,[])
     maxval=0
@@ -448,6 +455,7 @@ for num_bins in [1,2,4,6,8,10]:
     opt_times[num_bins]=end-start
     opt_scores[num_bins]=(maxval+beta0)*1.0/gt_score
     print (end-start)
+    total_time+=opt_times[num_bins]
 #(A,aval,Adomain,klst,kval,alpha,betalst,beta0):
 
 print (scores)

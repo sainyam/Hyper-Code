@@ -10,6 +10,12 @@ from collections import namedtuple, Counter
 import copy
 
 
+import sys,json
+config_file=open('../../config.json','r')
+configs=json.load(config_file)
+print (configs)
+max_time=int(configs['max_runtime'])*60*60
+
 # In[162]:
 
 
@@ -442,6 +448,7 @@ scores={}
 times={}
 opt_times={}
 opt_scores={}
+total_time=0
 for num_var in [5,6,7,8,9,10]:#[2]:#[10000,100000,200000,400000,600000,800000,1000000]:
     i=0
     lst=[]
@@ -476,7 +483,9 @@ for num_var in [5,6,7,8,9,10]:#[2]:#[10000,100000,200000,400000,600000,800000,10
     scores[num_var]=optimization(df,A,aval,Adomain,klst,kval,0.8,beta_lst,beta0)
     end=time.time()
     times[num_var]=end-start
-
+    if total_time> max_time:
+        opt_times[num_var]=opt_times[num_var-1]*2
+        continue
     start=time.time()
     domain_lst=get_combination(Adomain,[])
     maxval=0
@@ -508,9 +517,9 @@ for num_var in [5,6,7,8,9,10]:#[2]:#[10000,100000,200000,400000,600000,800000,10
         if sum_backdoor+curr> maxval:
             maxval=sum_backdoor+curr
         print (sum_backdoor+curr+beta0)
-     
     end=time.time()
     opt_times[num_var]=end-start
+    total_time+=end-start
     opt_scores[num_var]=maxval
     print (end-start)
 #(A,aval,Adomain,klst,kval,alpha,betalst,beta0):

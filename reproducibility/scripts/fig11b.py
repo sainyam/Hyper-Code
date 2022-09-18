@@ -9,6 +9,12 @@ import pandas as pd
 from collections import namedtuple, Counter
 import copy
 
+import sys,json
+config_file=open('../../config.json','r')
+configs=json.load(config_file)
+print (configs)
+max_time=int(configs['max_runtime'])*60*60
+
 
 # In[162]:
 
@@ -368,7 +374,7 @@ def optimization(df,A,aval,Adomain,klst,kval,alpha,betalst,beta0):
 
 
 
-
+total_time=0
 # In[199]:
 scores={}
 times={}
@@ -407,6 +413,10 @@ for size in [10000,20000,100000,200000,400000,600000,800000,1000000]:
     end=time.time()
     times[size]=end-start
 
+
+    if total_time > max_time:
+        opt_times[size]=opt_times[100000]*(size*1.0/100000)
+        continue
     start=time.time()
     domain_lst=get_combination(Adomain,[])
     maxval=0
@@ -446,6 +456,7 @@ for size in [10000,20000,100000,200000,400000,600000,800000,1000000]:
     opt_times[size]=end-start
     opt_scores[num_bins]=maxval+beta0
     print (end-start)
+    total_time[size]=end-start
 #(A,aval,Adomain,klst,kval,alpha,betalst,beta0):
 
 print (scores)
