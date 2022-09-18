@@ -109,7 +109,7 @@ def get_data_vary_var(N,seed,num_var):
     
     i=0
     while i<num_var:
-        df["var"+str(i)] = np.random.binomial(n=5, p=0.5,size=N)
+        df["var"+str(i)] = np.random.binomial(n=1, p=0.5,size=N)
         i+=1
     
     

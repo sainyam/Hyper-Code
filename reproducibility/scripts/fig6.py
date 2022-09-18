@@ -19,6 +19,9 @@ import helper,germansyn
 debug=False
 
 
+import sys,json
+config_file=open('../../config.json','r')
+configs=json.load(config_file)
 
 
 
