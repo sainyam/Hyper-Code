@@ -457,7 +457,7 @@ for size in [10000,20000,100000,200000,400000,600000,800000,1000000]:
     opt_scores[num_bins]=maxval+beta0
     print (end-start)
     tot_time+=end-start
-    total_time[size]=end-start
+    #total_time[size]=end-start
 #(A,aval,Adomain,klst,kval,alpha,betalst,beta0):
 
 print (scores)
