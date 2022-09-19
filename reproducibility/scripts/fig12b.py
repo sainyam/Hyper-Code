@@ -514,7 +514,7 @@ for num_var in [5,6,7,8,9,10]:#[2]:#[10000,100000,200000,400000,600000,800000,10
             sum_backdoor+= tmpsum*(sampled_df.shape[0]*1.0/df.shape[0])
 
             print(sampled_df.shape[0])
-            if total_time + end-start > max_time:
+            if total_time + time.time()-start > max_time:
                 out_of_time=True
                 break
         if out_of_time:
