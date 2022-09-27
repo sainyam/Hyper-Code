@@ -525,6 +525,7 @@ for num_var in [5,6,7,8,9,10]:#[2]:#[10000,100000,200000,400000,600000,800000,10
     if out_of_time:
         opt_times[num_var]=opt_times[num_var-1]*2
         total_time = max_time+1
+        continue
     end=time.time()
     opt_times[num_var]=end-start
     total_time+=end-start
