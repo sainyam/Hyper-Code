@@ -14,7 +14,8 @@ cd Hyper-Code
 ### Step 2: Install dependencies
 
 ```
-sudo apt-get virtualenv
+sudo apt-get update
+sudo apt-get install virtualenv
 virtualenv venv
 source ./venv/bin/activate 
 
