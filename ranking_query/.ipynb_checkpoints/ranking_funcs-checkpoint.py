@@ -328,8 +328,8 @@ def get_ranking_query(G, df, k, update_vars, target_column, condition=None, opt=
         'fix': lambda: ranking_query(G, df, k, update_vars, target_column, condition),
         'multiply_by': lambda: ranking_query_multi(G, df, k, update_vars, target_column, condition),
         'divided_by': lambda: ranking_query_multi(G, df, k, divide_values(update_vars), target_column, condition),
-        'add': lambda: adjust_node_add(G, df, k, update_vars, target_column, condition),
-        'subs': lambda: adjust_node_add(G, df, k, negate_values(update_vars), target_column, condition)
+        'add': lambda: ranking_query_add(G, df, k, update_vars, target_column, condition),
+        'subs': lambda: ranking_query_add(G, df, k, negate_values(update_vars), target_column, condition)
     }
 
     return options.get(opt, lambda: 'Invalid operator, operator must be one of "fix", "multiply_by", "divided_by", "add", and "subs"')()
