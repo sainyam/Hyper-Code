@@ -599,7 +599,7 @@ def test_revert_ranking_rec(G, df, k, update_vars, target_column, condition=None
     
     if x_pre is not None:
                 print(x_pre)
-                prev_results=stable_ranking_opt_2(G, df, k, {x: x_pre}, target_column, condition, max_iter)
+                prev_results=stable_ranking_opt(G, df, k, {x: x_pre}, target_column, condition, max_iter)
     else:
         print("no updtaes,increase the max iteration by 1000") 
         max_iter+=1000
