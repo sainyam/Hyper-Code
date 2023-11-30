@@ -952,5 +952,15 @@ def base_line(df,k):
     prob=1/(m.perm(len(df), k))
     return prob
 
+def cal_top_k_tuples(rank, df):
+    prob_presence = rank.iloc[:, 1:].sum(axis=1).tolist()
+    df_rows = df.loc[rank.index].copy()
+    df_rows['prob_presence'] = prob_presence
+    df_rows['index'] = rank.index
+    return df_rows
         
+    
+def get_top_k_tuples(rank, df):
+    filtered_rank=filter_prob_df(rank)
+    return cal_top_k_tuples(filtered_rank,df)
         

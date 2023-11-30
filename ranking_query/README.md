@@ -42,7 +42,7 @@ condition={'Education':12}
 ranked_output =get_ranking_query(new_G, df, 3,update_vars,target_column,condition, opt="fix")
 ```
 
-### Example 2: Performing a Ranking Query by mutiply by
+### Example 3: Performing a Ranking Query by mutiply by
 ```python
 # Prepare update variables for ranking
 update_vars = {'Income': 3} 
@@ -57,7 +57,7 @@ condition={'Education':12}
 ranked_output =get_ranking_query(new_G, df, 3,update_vars,target_column,condition, opt="multiply_by")
 ```
 
-### Example 3: Using Backdoor Adjustment for Causal Inference
+### Example 4: Using Backdoor Adjustment for Causal Inference
 ```python
 # get the post intervention dataframe
 post_inter_df=get_ranking_query(new_G, df, len(df),update_vars,target_column,condition, opt="multiply_by")
@@ -66,13 +66,13 @@ post_inter_df=get_ranking_query(new_G, df, len(df),update_vars,target_column,con
 backdoor_prob=get_prob_backdoor(post_inter_df,new_G,'Satisfaction')
 ```
 
-### Example 4: Finding Stable Rankings
+### Example 5: Finding Stable Rankings
 ```python
 # Finding stable ranking options
 stable_result = stable_ranking_opt(new_G, df, 3,update_vars,target_column,condition, opt="multiply_by")
 ```
 
-### Example 5 Getting the multiple stable Ranking
+### Example 6: Getting the multiple stable Ranking
 ```python
 #Prepare the previous ranking
 prev_results=get_ranking_query(new_G, df, 3,update_vars,target_column,condition, opt="multiply_by")
@@ -89,7 +89,7 @@ max_num_iter=1
 #Get the multiple stable ranking results for upper bond
 multiple_stable_result = get_test_revert_ranking_rec(new_G, df, 3, update_vars, target_column,condition,prev_results,max_iter,num_iter,max_num_iter,'uper','multiply_by')
 ```
-### Example 6: Get Ranking Probability
+### Example 7: Get Ranking Probability
 ```python
 import math as m
 ## get the the post intervention ranking probility 
@@ -105,7 +105,7 @@ ranking_prob_filtered=filter_prob_df(ranking_prob)
 probs_multi=calc_prob(ranking_prob_filtered,num_pwd)
 ```
 
-### Example 7: Getting the Grouped Ranking Probability
+### Example 8: Getting the Grouped Ranking Probability
 ```python
 import math as m
 # Prepare the column will be used for group by
@@ -122,4 +122,13 @@ rank_rating_by_ma_filtered=filter_prob_df_grouped(rank_rating_by_ma)
 
 # calculate all the possible world probility after filtering
 pwd_prob=calc_prob(rank_rating_by_ma_filtered,num_pwd)
+```
+
+### Example 9: Get the tuple for most probable top k
+```python
+# Prepare the rank
+rank_rating_by_ma=get_ranking_query_prob_grouped(new_G, df, 3, update_vars, target_column,group_col,condition,'multiply_by')
+
+# Get the top k tuples
+top_k_tuples=get_top_k_tuples(rank_rating_by_ma,df)
 ```
