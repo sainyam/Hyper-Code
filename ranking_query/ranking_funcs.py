@@ -1038,7 +1038,7 @@ def Greedy_Algo(G, df, k, target_column, vars_test,thresh_hold=0,condition=None,
             x_sd = np.abs(df[var].std() * force)*pos
             for i in range(max_iter):
                 x_up+=x_sd
-                new_rank=get_ranking_query(new_G, df, k, {var:x_up}, target_column,condition,opt).index
+                new_rank=get_ranking_query(G, df, k, {var:x_up}, target_column,condition,opt).index
                 rank_result.append(new_rank)
                 
     elif opt=='multiply_by'or 'divided_by':
@@ -1053,7 +1053,7 @@ def Greedy_Algo(G, df, k, target_column, vars_test,thresh_hold=0,condition=None,
             x_sd = op_chang(1+np.abs(df[var].std() * force))
             for i in range(max_iter):
                 x_up*=x_sd
-                new_rank=get_ranking_query(new_G, df, k, {var:x_up}, target_column,condition,opt).index
+                new_rank=get_ranking_query(G, df, k, {var:x_up}, target_column,condition,opt).index
                 rank_result.append(new_rank)
     else:
         print('invalid operator, operator must be add,subs,multiply_by and divided_by')

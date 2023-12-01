@@ -20,10 +20,10 @@
 - opt has to be one of 'fix','multiply_by','divided_by','add' and 'subs'which can help updating variables in these methods.
 - <strong>This function will return an updated top k ranking dataframe </strong>
 
-### get_prob_backdoor
-- input df,G,y
+### get_prob_backdoor_opt
+- input df,cgm,y
 - df is the ranking dataframe
-- G is the casual graph
+- cgm is the casual graph from causalgraphicalmodels
 - y is the target column where the ranking dataframe is ranked by
 - <strong>This function compute the probability of of post intervention by using backdoor criterion </strong>
 
@@ -71,7 +71,22 @@
 - df is the corresponding dataframe for rank datafrmae
 - <strong>This function will return the tuple for most probable top k and the occuring prob on top k.</strong>
 
+### Greedy_Algo
+- input G, df, k, target_column, vars_test,thresh_hold,condition,max_iter, opt,force
+- G is the causal graph from output of get_new_G function
+- df is the dataframe from Pandas
+- target_column is the variable that the query will be ranking by from a descending order
+- vars_test the variables will be used to change the rank that it should exclude the target column 
+- thresh_hold is the probility threshold to filter the rank with prob larger or equal to.
+- condition is the updating condtion that {'variable_name':value,'variable_name2':value2...}, it will only updates for the data that 
+- opt has to be one of 'fix','multiply_by','divided_by','add' and 'subs'which can help updating variables in these methods.
+- force is the float that with larger number that, we expect more ranks will be generated
+- <strong>This function will return the occurance probility datafrmae for rank.</strong>
 
+### get_most_probable_elements
+- input df_gr
+- df_gr is the occurance probility datafrmae for rank generated from Greedy_Algo
+- <strong>This function will find the most probable elements in top k pwd</strong>
 
 ## Examples
 
@@ -135,8 +150,11 @@ ranked_output =get_ranking_query(new_G, df, 3,update_vars,target_column,conditio
 # get the post intervention dataframe
 post_inter_df=get_ranking_query(new_G, df, len(df),update_vars,target_column,condition, opt="multiply_by")
 
+# get the causal graph
+cgm=get_cgm(new_G)
+
 # Compute the probability of of post intervention by using backdoor criterion
-backdoor_prob=get_prob_backdoor(post_inter_df,new_G,'Satisfaction')
+backdoor_prob=get_prob_backdoor_opt(post_inter_df,cgm,'Satisfaction')
 ```
 
 ### Example 5: Finding Stable Rankings
@@ -204,4 +222,16 @@ rank_rating_by_ma=get_ranking_query_prob_grouped(new_G, df, 3, update_vars, targ
 
 # Get the top k tuples
 top_k_tuples=get_top_k_tuples(rank_rating_by_ma,df)
+```
+
+### Example 10: Get the tuple for most probable top k
+```python
+# prepare the variables will be used to change the rank that it should exclude the target column 
+var=['Education', 'Experience', 'Income']
+
+# Prepare the occurance probility datafrmae for rank
+df_gr=Greedy_Algo(new_G, df, 3, target_column,var,condition,100,'multiply_by',0.5)
+
+# Get the most probable elements in top k pwd 
+most_probable_elements=get_most_probable_elements(df_gr)
 ```
