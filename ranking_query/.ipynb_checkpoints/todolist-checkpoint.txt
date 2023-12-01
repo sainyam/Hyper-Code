@@ -1,0 +1,10 @@
+To find the tuple (compute all the pwd), in each tupple on top k (c)
+
+definition for function (c)
+
+Hyper apporach, 
+
+modfiy top k to ranking k
+
+Optimize backdoor(c)
+
