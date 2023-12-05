@@ -8,3 +8,9 @@ modfiy top k to ranking k
 
 Optimize backdoor(c)
 
+Backteria need to calcualte (pick r1,r5,r7)
+Pr(r1>theta1,r5>theta1,r7>theta1|given updates)
+r is the row (c) (fix)
+
+multiple query tok, compare this to another aproach (greedy one)
+

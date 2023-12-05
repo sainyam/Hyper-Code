@@ -1077,3 +1077,95 @@ def get_most_probable_elements(df):
     }
     stats_df = pd.DataFrame(combined_data)
     return stats_df
+
+
+
+##currently not use and needs testing
+
+def check_constr(df, conditions):
+    if df[list(conditions.keys())].eq(pd.Series(conditions)).all(axis=1).any():
+        return 'invalid'
+    else:
+        return 'valid'
+    
+
+def check_constraint_violation(df, G, X, X_values, Y, Y_value):
+    cgm = get_cgm(G)
+    if len(X) != len(X_values):
+        raise ValueError("Length of X and X_values must be the same")
+
+
+    violation_prob = 0
+    for x, x_val in zip(X, X_values):
+        bd_sets = find_backdoor_sets_opt(cgm, Y, x)
+
+        for bd_set in bd_sets:
+            adjusted_prob = backdoor_adjustment_opt(df, Y, Y_value, x, x_val, list(bd_set))
+            violation_prob += (1 - adjusted_prob)  
+
+    return violation_prob / len(X)
+
+
+def create_pwd_dataframe(pwds, validity):
+    pwd_stats = defaultdict(lambda: {'valid_count': 0, 'invalid_count': 0})
+
+    for pwd, status in zip(pwds, validity):
+        pwd_tuple = tuple(pwd) 
+        if status == 'valid':
+            pwd_stats[pwd_tuple]['valid_count'] += 1
+        else:
+            pwd_stats[pwd_tuple]['invalid_count'] += 1
+    total_count = len(validity)
+    data = []
+    for pwd, stats in pwd_stats.items():
+        valid_prob = stats['valid_count'] / total_count
+        invalid_prob = stats['invalid_count'] / total_count
+        data.append({
+            'valid_pwd': list(pwd),
+            'valid_pwd_prob': valid_prob,
+            'invalid_pwd_prob': invalid_prob,
+            'valid_total_iters': stats['valid_count'],
+            'invalid_total_iters': stats['invalid_count']
+        })
+
+    return pd.DataFrame(data)
+
+
+def noisy_causal(G, df, k, target_column,constr, vars_test,thresh_hold=0,condition=None,max_iter=100, opt="add",force=0.01):
+    rank_result=[]
+    validity_check=[]
+    if opt=='add'or 'subs':
+        if opt=='add':
+            pos=1
+        else:
+            pos=-1
+        for var in vars_test:
+            x_up=0
+            x_sd = np.abs(df[var].std() * force)*pos
+            for i in range(max_iter):
+                x_up+=x_sd
+                new_pwd=get_ranking_query(G, df, len(df), {var:x_up}, target_column,condition,opt)
+                new_rank=new_pwd.head(k).index
+                rank_result.append(new_rank)
+                validity_check.append(check_constr(new_pwd,constr))
+                
+    elif opt=='multiply_by'or 'divided_by':
+        if opt=='divided_by':
+            def op_chang(x_sd):
+                return 1/x_sd
+        else:
+            def op_chang(x_sd):
+                return x_sd    
+        for var in vars_test:
+            x_up=0
+            x_sd = op_chang(1+np.abs(df[var].std() * force))
+            for i in range(max_iter):
+                x_up*=x_sd
+                new_pwd=get_ranking_query(G, df, len(df), {var:x_up}, target_column,condition,opt)
+                new_rank=new_pwd.head(k).index
+                rank_result.append(new_rank)
+                validity_check.append(check_constr(new_pwd,constr))
+    else:
+        print('invalid operator, operator must be add,subs,multiply_by and divided_by')
+    
+#########
