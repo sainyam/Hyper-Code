@@ -1169,3 +1169,54 @@ def noisy_causal(G, df, k, target_column,constr, vars_test,thresh_hold=0,conditi
         print('invalid operator, operator must be add,subs,multiply_by and divided_by')
     
 #########
+
+
+
+def get_row_prob_back(prob_df, df, row_index, y, theta):
+    row = df.iloc[row_index]
+    Z_groups = []
+    prob_groups = []
+
+    for z in prob_df['Z'].unique():
+        z_relevant_probs = prob_df[
+            (prob_df['Z'] == z) & 
+            (prob_df['Y'] == y) & 
+            (prob_df['Y_value'] >= theta)
+        ]
+        if len(z_relevant_probs)==0:
+            Z_groups.append(z)
+            prob_groups.append(0)
+            
+        else:
+            x_values_in_z_group = z_relevant_probs['X'].unique()
+            prob_product = 1
+            for x in x_values_in_z_group:
+                if x in row.index:  
+                    x_value = row[x]
+                    x_prob = z_relevant_probs[
+                    (z_relevant_probs['X'] == x) & 
+                    (z_relevant_probs['X_value'] == x_value)]['prob'].sum()
+                    prob_product *= x_prob
+            Z_groups.append(z)
+            prob_groups.append(prob_product)
+
+    return pd.DataFrame({'backdoor_path':Z_groups, 'prob':prob_groups})
+
+
+def rec_row_prob_back(df, row_indexes, theta, cgm, y):
+    prob_df = get_prob_backdoor_opt(df, cgm, y)
+
+    total_prob = None
+    backdoor_path = None
+
+    for row_index in row_indexes:
+        row_prob_df = get_row_prob_back(prob_df, df, row_index, y, theta)
+        row_total_prob = row_prob_df['prob'].astype(float).to_numpy()
+
+        if total_prob is None:
+            total_prob = row_total_prob
+        else:
+            total_prob *= row_total_prob
+        backdoor_path = row_prob_df['backdoor_path']
+
+    return pd.DataFrame({'prob': total_prob, 'backdoor_path': backdoor_path})
