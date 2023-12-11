@@ -979,18 +979,23 @@ def get_cgm(G):
 def backdoor_adjustment_opt(df, Y, y, A, a, Z):
     prob = 0
     total_len = len(df)
-    if not Z:
-        df_A_a = df[df[A] == a]
-        if not df_A_a.empty:
-            p_Y_given_A = (df_A_a[Y] == y).sum() / len(df_A_a)
-            prob = p_Y_given_A
-    else:
-        df_grouped = df.groupby(Z)
-        for z_values, group in df_grouped:
-            group_A_a = group[group[A] == a]
-            p_Y_given_A_Z = (group_A_a[Y] == y).sum() / len(group_A_a) if not group_A_a.empty else 0
-            p_Z = len(group) / total_len
+    total_relevant_Z = 0  
+    unique_Z_combinations = df[Z].drop_duplicates()
+    for z_values in unique_Z_combinations.itertuples(index=False):
+        mask_Z = np.ones(len(df), dtype=bool)
+        for column, value in zip(Z, z_values):
+            mask_Z = mask_Z & (df[column] == value)
+        
+        df_Z = df[mask_Z]
+        df_A_a_Z = df_Z[df_Z[A] == a]
+
+        if not df_A_a_Z.empty:
+            p_Y_given_A_Z = (df_A_a_Z[Y] == y).sum() / len(df_A_a_Z)
+            p_Z = len(df_Z) / total_len
+            total_relevant_Z += len(df_Z)
             prob += p_Y_given_A_Z * p_Z
+    if total_relevant_Z > 0:
+        prob = prob * total_len / total_relevant_Z
 
     return prob
 
