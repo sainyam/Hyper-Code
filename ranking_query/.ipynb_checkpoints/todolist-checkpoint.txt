@@ -21,3 +21,13 @@ Pt(t_i,D) > Pr(t_j,D) for all j > k and I<=k
 
 1:30-2:30 east time
 10:30-11:30
+
+Pr(r1 > theta and r2<theta)
+
+$\sum Pr(top k |backdoor) Pr(backdoor)$
+
+$Pr(backdoor)$ is missing (to do)
+
+marginal prob of each tupple, each tuple is 0 or close to 0 should be filtered out(without this and with this) (to do) 
+
+compare this to the greedy approcah(to do), verify the answer is same
