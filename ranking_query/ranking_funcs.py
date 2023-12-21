@@ -8,6 +8,8 @@ import math as m
 from collections import defaultdict
 from causalgraphicalmodels import CausalGraphicalModel
 from collections import Counter
+from pgmpy.models import BayesianNetwork
+from pgmpy.inference.CausalInference import CausalInference
 
 ##packages need
 
@@ -967,8 +969,8 @@ def get_top_k_tuples(rank, df):
     return cal_top_k_tuples(filtered_rank,df)
 
 
-def find_backdoor_sets_opt(cgm, Y, X):
-    return cgm.get_all_backdoor_adjustment_sets(Y, X)
+# def find_backdoor_sets_opt(cgm, Y, X):
+#     return cgm.get_all_backdoor_adjustment_sets(Y, X)
 
 def get_cgm(G):
     return CausalGraphicalModel(
@@ -976,28 +978,28 @@ def get_cgm(G):
     edges=G.edges)
 
 
-def backdoor_adjustment_opt(df, Y, y, A, a, Z):
-    prob = 0
-    total_len = len(df)
-    total_relevant_Z = 0  
-    unique_Z_combinations = df[Z].drop_duplicates()
-    for z_values in unique_Z_combinations.itertuples(index=False):
-        mask_Z = np.ones(len(df), dtype=bool)
-        for column, value in zip(Z, z_values):
-            mask_Z = mask_Z & (df[column] == value)
+# def backdoor_adjustment_opt(df, Y, y, A, a, Z):
+#     prob = 0
+#     total_len = len(df)
+#     total_relevant_Z = 0  
+#     unique_Z_combinations = df[Z].drop_duplicates()
+#     for z_values in unique_Z_combinations.itertuples(index=False):
+#         mask_Z = np.ones(len(df), dtype=bool)
+#         for column, value in zip(Z, z_values):
+#             mask_Z = mask_Z & (df[column] == value)
         
-        df_Z = df[mask_Z]
-        df_A_a_Z = df_Z[df_Z[A] == a]
+#         df_Z = df[mask_Z]
+#         df_A_a_Z = df_Z[df_Z[A] == a]
 
-        if not df_A_a_Z.empty:
-            p_Y_given_A_Z = (df_A_a_Z[Y] == y).sum() / len(df_A_a_Z)
-            p_Z = len(df_Z) / total_len
-            total_relevant_Z += len(df_Z)
-            prob += p_Y_given_A_Z * p_Z
-    if total_relevant_Z > 0:
-        prob = prob * total_len / total_relevant_Z
+#         if not df_A_a_Z.empty:
+#             p_Y_given_A_Z = (df_A_a_Z[Y] == y).sum() / len(df_A_a_Z)
+#             p_Z = len(df_Z) / total_len
+#             total_relevant_Z += len(df_Z)
+#             prob += p_Y_given_A_Z * p_Z
+#     if total_relevant_Z > 0:
+#         prob = prob * total_len / total_relevant_Z
 
-    return prob
+#     return prob
 
 def get_prob_backdoor_opt(df, cgm, y):
     nodes = cgm.graph.nodes
@@ -1225,3 +1227,168 @@ def rec_row_prob_back(df, row_indexes, theta, cgm, y):
         backdoor_path = row_prob_df['backdoor_path']
 
     return pd.DataFrame({'prob': total_prob, 'backdoor_path': backdoor_path})
+
+
+def read_imdb_data(path):
+    df = pd.read_csv(path)
+    df['averageRating'] = round(df['averageRating'], 1)
+
+    featlst = list(df.columns)
+
+    for feat in featlst:
+        l = df[feat]  
+
+        if feat == 'isAdult':
+            processed = [1 if v == 1 else 0 for v in l]
+            df[feat] = processed
+
+        if feat == 'runtimeMinutes':
+            processed = [0 if v <= 23 else 1 if v <= 37 else 2 if v <= 47 else 3 for v in l]
+            df[feat] = processed
+
+        if feat == 'seasonNumber':
+            processed = [0 if v <= 1 else 1 if v <= 2 else 2 if v <= 5 else 3 for v in l]
+            df[feat] = processed
+
+        if feat == 'episodeNumber':
+            processed = [0 if v <= 4 else 1 if v <= 8 else 2 if v <= 15 else 3 for v in l]
+            df[feat] = processed
+
+        if feat == 'numVotes':
+            processed = [0 if v <= 14 else 1 if v <= 35 else 2 if v <= 139 else 3 for v in l]
+            df[feat] = processed
+
+    return df
+
+def find_backdoor_sets_opt(G, Y, X):
+    new_G = BayesianNetwork()
+    new_G.add_nodes_from(G.nodes)
+    new_G.add_edges_from(G.edges)
+    inference = CausalInference(new_G)
+    backdoor_sets = inference.get_all_backdoor_adjustment_sets(X, Y)
+    return backdoor_sets
+
+
+
+def backdoor_adjustment_opt(df, Y, y, A, a, Z):
+    prob = 0
+    total_len = len(df)
+    total_relevant_Z = 0  
+
+    unique_Z_combinations = df[Z].drop_duplicates()
+    for z_values in unique_Z_combinations.itertuples(index=False):
+        mask_Z = np.ones(len(df), dtype=bool)
+        for column, value in zip(Z, z_values):
+            mask_Z = mask_Z & (df[column] == value)
+        
+        df_Z = df[mask_Z]
+        df_A_a_Z = df_Z[df_Z[A] == a]
+
+        if not df_A_a_Z.empty:
+            p_Y_given_A_Z = (df_A_a_Z[Y] == y).sum() / len(df_A_a_Z)
+            p_Z = len(df_Z) / total_len
+            total_relevant_Z += len(df_Z)
+            prob += p_Y_given_A_Z * p_Z
+    if total_relevant_Z > 0:
+        prob = prob * total_len / total_relevant_Z
+
+    return prob
+
+
+
+def get_prob_backdoor_opt(G, df, k, update_vars, target_column, condition, opt, row_indexes, theta):
+    updated_df = get_ranking_query(G, df, len(df), update_vars, target_column, condition, opt)
+    nodes = update_vars.keys()
+    results = []
+    
+    for node in nodes:
+        bd_sets = find_backdoor_sets_opt(G, target_column, node)
+        for bd_set in bd_sets:
+            dom_y = updated_df[target_column].unique()
+            dom_node = updated_df[node].unique()
+            for d_y in dom_y:
+                for d_n in dom_node:
+                    adjusted_prob = backdoor_adjustment_opt(updated_df, target_column, d_y, node, d_n, list(bd_set))
+                    results.append({
+                        'Y': target_column, 
+                        'Y_value': d_y, 
+                        'X': node, 
+                        'X_value': d_n, 
+                        'Z': ', '.join(bd_set), 
+                        'prob': adjusted_prob
+                    })
+    prob_df = pd.DataFrame(results)
+    
+    total_prob = None
+    backdoor_path = None
+    for row_index in row_indexes:
+        row = updated_df.iloc[row_index]                    
+        prob_groups = []
+        Z_groups = []
+        for z in prob_df['Z'].unique():
+            z_relevant_probs = prob_df[
+                (prob_df['Z'] == z) & 
+                (prob_df['Y'] == target_column) & 
+                (prob_df['Y_value'] >= theta)]
+            Z_groups.append(z)
+            prob_sum = 0
+            for x in prob_df['X'].unique():
+                if x in row.index:  
+                    x_value = row[x]
+                    prob_sum += z_relevant_probs[
+                        (z_relevant_probs['X'] == x) & 
+                        (z_relevant_probs['X_value'] == x_value)]['prob'].sum()
+            prob_groups.append(prob_sum)
+
+        row_prob_df = pd.DataFrame({'backdoor_path':Z_groups, 'prob':prob_groups})
+        row_total_prob = row_prob_df['prob'].astype(float).to_numpy()
+
+        if total_prob is None:
+            total_prob = row_total_prob
+        else:
+            total_prob *= row_total_prob
+        backdoor_path = row_prob_df['backdoor_path'].to_list()
+
+    if total_prob is None:
+        return pd.DataFrame()
+    final_df = pd.DataFrame({'prob': total_prob, 'backdoor_path': backdoor_path})
+    final_df['prob_backdoor'] = 1 / len(final_df)
+    return (final_df['prob']*final_df['prob_backdoor']).sum()
+
+def Comp_Greedy_Algo_backdoor(row_indexes,G, df, k, target_column, vars_test,thresh_hold=0,condition=None,max_iter=100, opt="add",force=0.01):
+    prob_result=[]
+    
+    if opt=='add'or 'subs':
+        if opt=='add':
+            pos=1
+        else:
+            pos=-1
+        for var in vars_test:
+            x_up=0
+            x_sd = np.abs(df[var].std() * force)*pos
+            for i in range(max_iter):
+                x_up+=x_sd
+                updated_df=get_ranking_query(G, df, len(df), {var:x_up}, target_column, condition, opt).sort_values(by=target_column,ascending=False)
+                theta=updated_df[target_column][k-1]
+                prob_backdoor=get_prob_backdoor_opt(G, df, k, {var:x_up}, target_column, condition, opt, row_indexes, theta)
+                prob_result.append(prob_backdoor)
+                
+    elif opt=='multiply_by'or 'divided_by':
+        if opt=='divided_by':
+            def op_chang(x_sd):
+                return 1/x_sd
+        else:
+            def op_chang(x_sd):
+                return x_sd    
+        for var in vars_test:
+            x_up=0
+            x_sd = op_chang(1+np.abs(df[var].std() * force))
+            for i in range(max_iter):
+                x_up*=x_sd
+                updated_df=get_ranking_query(G, df, len(df), {var:x_up}, target_column, condition, opt).sort_values(by=target_column,ascending=False)
+                theta=updated_df[target_column][k-1] 
+                prob_backdoor=get_prob_backdoor_opt(G, df, k, {var:x_up}, target_column, condition, opt, row_indexes, theta)
+                prob_result.append(prob_backdoor)
+    else:
+        print('invalid operator, operator must be add,subs,multiply_by and divided_by')
+    return prob_result
