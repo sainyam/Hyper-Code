@@ -6,7 +6,6 @@ import networkx as nx
 import itertools
 import math as m
 from collections import defaultdict
-from causalgraphicalmodels import CausalGraphicalModel
 from collections import Counter
 from pgmpy.models import BayesianNetwork
 from pgmpy.inference.CausalInference import CausalInference
@@ -969,8 +968,8 @@ def get_top_k_tuples(rank, df):
     return cal_top_k_tuples(filtered_rank,df)
 
 
-# def find_backdoor_sets_opt(cgm, Y, X):
-#     return cgm.get_all_backdoor_adjustment_sets(Y, X)
+def find_backdoor_sets_opt(cgm, Y, X):
+    return cgm.get_all_backdoor_adjustment_sets(Y, X)
 
 def get_cgm(G):
     return CausalGraphicalModel(
@@ -978,28 +977,28 @@ def get_cgm(G):
     edges=G.edges)
 
 
-# def backdoor_adjustment_opt(df, Y, y, A, a, Z):
-#     prob = 0
-#     total_len = len(df)
-#     total_relevant_Z = 0  
-#     unique_Z_combinations = df[Z].drop_duplicates()
-#     for z_values in unique_Z_combinations.itertuples(index=False):
-#         mask_Z = np.ones(len(df), dtype=bool)
-#         for column, value in zip(Z, z_values):
-#             mask_Z = mask_Z & (df[column] == value)
+def backdoor_adjustment_opt(df, Y, y, A, a, Z):
+    prob = 0
+    total_len = len(df)
+    total_relevant_Z = 0  
+    unique_Z_combinations = df[Z].drop_duplicates()
+    for z_values in unique_Z_combinations.itertuples(index=False):
+        mask_Z = np.ones(len(df), dtype=bool)
+        for column, value in zip(Z, z_values):
+            mask_Z = mask_Z & (df[column] == value)
         
-#         df_Z = df[mask_Z]
-#         df_A_a_Z = df_Z[df_Z[A] == a]
+        df_Z = df[mask_Z]
+        df_A_a_Z = df_Z[df_Z[A] == a]
 
-#         if not df_A_a_Z.empty:
-#             p_Y_given_A_Z = (df_A_a_Z[Y] == y).sum() / len(df_A_a_Z)
-#             p_Z = len(df_Z) / total_len
-#             total_relevant_Z += len(df_Z)
-#             prob += p_Y_given_A_Z * p_Z
-#     if total_relevant_Z > 0:
-#         prob = prob * total_len / total_relevant_Z
+        if not df_A_a_Z.empty:
+            p_Y_given_A_Z = (df_A_a_Z[Y] == y).sum() / len(df_A_a_Z)
+            p_Z = len(df_Z) / total_len
+            total_relevant_Z += len(df_Z)
+            prob += p_Y_given_A_Z * p_Z
+    if total_relevant_Z > 0:
+        prob = prob * total_len / total_relevant_Z
 
-#     return prob
+    return prob
 
 def get_prob_backdoor_opt(df, cgm, y):
     nodes = cgm.graph.nodes
@@ -1045,7 +1044,7 @@ def Greedy_Algo(G, df, k, target_column, vars_test,thresh_hold=0,condition=None,
             x_sd = np.abs(df[var].std() * force)*pos
             for i in range(max_iter):
                 x_up+=x_sd
-                new_rank=get_ranking_query(G, df, k, {var:x_up}, target_column,condition,opt).index
+                new_rank=get_ranking_query(G, df, len(df), {var:x_up},                                     target_column,condition,opt).sort_values(by=target_column,ascending=False).head(k).index
                 rank_result.append(new_rank)
                 
     elif opt=='multiply_by'or 'divided_by':
@@ -1060,7 +1059,7 @@ def Greedy_Algo(G, df, k, target_column, vars_test,thresh_hold=0,condition=None,
             x_sd = op_chang(1+np.abs(df[var].std() * force))
             for i in range(max_iter):
                 x_up*=x_sd
-                new_rank=get_ranking_query(G, df, k, {var:x_up}, target_column,condition,opt).index
+                new_rank=get_ranking_query(G, df, len(df), {var:x_up}, target_column,condition,opt).sort_values(by=target_column,ascending=False).head(k).index
                 rank_result.append(new_rank)
     else:
         print('invalid operator, operator must be add,subs,multiply_by and divided_by')
@@ -1229,6 +1228,7 @@ def rec_row_prob_back(df, row_indexes, theta, cgm, y):
     return pd.DataFrame({'prob': total_prob, 'backdoor_path': backdoor_path})
 
 
+
 def read_imdb_data(path):
     df = pd.read_csv(path)
     df['averageRating'] = round(df['averageRating'], 1)
@@ -1266,7 +1266,12 @@ def find_backdoor_sets_opt(G, Y, X):
     new_G.add_edges_from(G.edges)
     inference = CausalInference(new_G)
     backdoor_sets = inference.get_all_backdoor_adjustment_sets(X, Y)
-    return backdoor_sets
+    if backdoor_sets:
+        min_length = min(len(s) for s in backdoor_sets)
+        shortest_backdoor_sets = [s for s in backdoor_sets if len(s) == min_length]
+        return shortest_backdoor_sets
+    else:
+        return None
 
 
 
@@ -1322,7 +1327,7 @@ def get_prob_backdoor_opt(G, df, k, update_vars, target_column, condition, opt, 
     total_prob = None
     backdoor_path = None
     for row_index in row_indexes:
-        row = updated_df.iloc[row_index]                    
+        row = updated_df.loc[row_index]                    
         prob_groups = []
         Z_groups = []
         for z in prob_df['Z'].unique():
@@ -1352,8 +1357,7 @@ def get_prob_backdoor_opt(G, df, k, update_vars, target_column, condition, opt, 
     if total_prob is None:
         return pd.DataFrame()
     final_df = pd.DataFrame({'prob': total_prob, 'backdoor_path': backdoor_path})
-    final_df['prob_backdoor'] = 1 / len(final_df)
-    return (final_df['prob']*final_df['prob_backdoor']).sum()
+    return final_df['prob']
 
 def Comp_Greedy_Algo_backdoor(row_indexes,G, df, k, target_column, vars_test,thresh_hold=0,condition=None,max_iter=100, opt="add",force=0.01):
     prob_result=[]
@@ -1369,7 +1373,7 @@ def Comp_Greedy_Algo_backdoor(row_indexes,G, df, k, target_column, vars_test,thr
             for i in range(max_iter):
                 x_up+=x_sd
                 updated_df=get_ranking_query(G, df, len(df), {var:x_up}, target_column, condition, opt).sort_values(by=target_column,ascending=False)
-                theta=updated_df[target_column][k-1]
+                theta=updated_df[target_column].iloc[k-1]
                 prob_backdoor=get_prob_backdoor_opt(G, df, k, {var:x_up}, target_column, condition, opt, row_indexes, theta)
                 prob_result.append(prob_backdoor)
                 
@@ -1386,9 +1390,39 @@ def Comp_Greedy_Algo_backdoor(row_indexes,G, df, k, target_column, vars_test,thr
             for i in range(max_iter):
                 x_up*=x_sd
                 updated_df=get_ranking_query(G, df, len(df), {var:x_up}, target_column, condition, opt).sort_values(by=target_column,ascending=False)
-                theta=updated_df[target_column][k-1] 
+                theta=updated_df[target_column].iloc[k-1] 
                 prob_backdoor=get_prob_backdoor_opt(G, df, k, {var:x_up}, target_column, condition, opt, row_indexes, theta)
                 prob_result.append(prob_backdoor)
     else:
         print('invalid operator, operator must be add,subs,multiply_by and divided_by')
     return prob_result
+
+
+def read_imdb_actor_data(path):
+    df = pd.read_csv(path)
+    df['averageRating'] = round(df['averageRating'], 0)
+    df['isAdult'] = df['isAdult'].apply(lambda x: 1 if x == 1 else 0)
+
+    def runtime_category(runtime):
+        if runtime <= 5: return 0
+        elif runtime <= 15: return 1
+        elif runtime <= 30: return 2
+        else: return 3
+    df['runtimeMinutes'] = df['runtimeMinutes'].apply(runtime_category)
+
+    def votes_category(votes):
+        if votes <= 15: return 0
+        elif votes <= 35: return 1
+        elif votes <= 100: return 2
+        else: return 3
+    df['numVotes'] = df['numVotes'].apply(votes_category)
+
+    name_map = {'Michael Smith': 0, 'David Smith': 1, 'Michael Johnson': 2,
+                'Chris Smith': 3, 'David Brown': 4, 'David Jones': 5}
+    df['primaryName'] = df['primaryName'].apply(lambda x: name_map.get(x, -1))
+
+    title_type_map = {'tvSeries': 0, 'tvMiniSeries': 0, 'tvSpecial': 1,
+                      'tvMovie': 1, 'tvShort': 1, 'tvEpisode': 1,
+                      'movie': 2, 'short': 3, 'video': 4, 'videoGame': 4}
+    df['titleType'] = df['titleType'].apply(lambda x: title_type_map.get(x, -1))
+    return df
