@@ -321,6 +321,9 @@ def ranking_query_add(G, df, k, update_vars, target_column, condition=None):
 
 def get_ranking_query(G, df, k, update_vars, target_column, condition=None, opt="fix"):
     
+    if update_vars==None:
+        return df.sort_values(by=target_column,ascending=False).head(k)
+    
     def divide_values(update_vars):
         return {key: 1/value for key, value in update_vars.items()}
 
