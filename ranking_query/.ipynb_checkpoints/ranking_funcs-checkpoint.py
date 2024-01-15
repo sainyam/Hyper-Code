@@ -9,6 +9,7 @@ from collections import defaultdict
 from collections import Counter
 from pgmpy.models import BayesianNetwork
 from pgmpy.inference.CausalInference import CausalInference
+from sklearn.model_selection import KFold
 
 ##packages need
 
@@ -146,6 +147,31 @@ def get_new_G(G,df):
         
     return new_G
 
+
+def get_new_G_combined(G, df):
+    """
+    G: the causal graph (networkx DiGraph)
+    df: the dataframe
+    """
+    df = df.replace([np.inf, -np.inf], np.nan).dropna()
+    new_G = nx.DiGraph()
+
+    for node in G.nodes():
+        predecessors = list(G.predecessors(node))
+
+        if predecessors:
+            X = sm.add_constant(df[predecessors])
+            y = df[node]
+
+            # Fit the regression model
+            model = sm.OLS(y, X).fit()
+
+            for pred in predecessors:
+                weight = model.params[pred]
+                new_G.add_edge(pred, node, weight=weight)
+
+    return new_G
+
 def adjust_node(node, delta, df_temp, G, condition_mask, updated_val, is_first_iteration=True):
     """
     node: the updtaed column
@@ -190,18 +216,18 @@ def ranking_query(G, df, k, update_vars, target_column, condition=None):
         delta = [value - x for x in temp_lst]
         adjust_node(var, delta, df_temp, G, condition_mask,value,True)
 
-    top_k_values = [float('-inf')] * k
-    top_k_indices = [-1] * k
+#     top_k_values = [float('-inf')] * k
+#     top_k_indices = [-1] * k
     
-    # greedy method
-    for index, row in df_temp.iterrows():
-        min_top_k = min(top_k_values)
-        if row[target_column] > min_top_k:
-            min_index = top_k_values.index(min_top_k)
-            top_k_values[min_index] = row[target_column]
-            top_k_indices[min_index] = index
+#     # greedy method
+#     for index, row in df_temp.iterrows():
+#         min_top_k = min(top_k_values)
+#         if row[target_column] > min_top_k:
+#             min_index = top_k_values.index(min_top_k)
+#             top_k_values[min_index] = row[target_column]
+#             top_k_indices[min_index] = index
 
-    return df_temp.loc[top_k_indices]
+    return df_temp.sort_values(by=target_column,ascending=False).head(k)
 
 def adjust_node_multi(node, delta, df_temp, G, condition_mask, updated_val, is_first_iteration=True):
     """
@@ -247,18 +273,18 @@ def ranking_query_multi(G, df, k, update_vars, target_column, condition=None):
         delta = [factor*x - x for x in temp_lst]
         adjust_node_multi(var, delta, df_temp, G, condition_mask,factor,True)
 
-    top_k_values = [float('-inf')] * k
-    top_k_indices = [-1] * k
+#     top_k_values = [float('-inf')] * k
+#     top_k_indices = [-1] * k
     
-    # greedy method
-    for index, row in df_temp.iterrows():
-        min_top_k = min(top_k_values)
-        if row[target_column] > min_top_k:
-            min_index = top_k_values.index(min_top_k)
-            top_k_values[min_index] = row[target_column]
-            top_k_indices[min_index] = index
+#     # greedy method
+#     for index, row in df_temp.iterrows():
+#         min_top_k = min(top_k_values)
+#         if row[target_column] > min_top_k:
+#             min_index = top_k_values.index(min_top_k)
+#             top_k_values[min_index] = row[target_column]
+#             top_k_indices[min_index] = index
 
-    return df_temp.loc[top_k_indices]
+    return df_temp.sort_values(by=target_column,ascending=False).head(k)
 
 
 def adjust_node_add(node, delta, df_temp, G, condition_mask, updated_val, is_first_iteration=True):
@@ -308,18 +334,21 @@ def ranking_query_add(G, df, k, update_vars, target_column, condition=None):
     top_k_values = [float('-inf')] * k
     top_k_indices = [-1] * k
     
-    # greedy method
-    for index, row in df_temp.iterrows():
-        min_top_k = min(top_k_values)
-        if row[target_column] > min_top_k:
-            min_index = top_k_values.index(min_top_k)
-            top_k_values[min_index] = row[target_column]
-            top_k_indices[min_index] = index
+    # # greedy method
+    # for index, row in df_temp.iterrows():
+    #     min_top_k = min(top_k_values)
+    #     if row[target_column] > min_top_k:
+    #         min_index = top_k_values.index(min_top_k)
+    #         top_k_values[min_index] = row[target_column]
+    #         top_k_indices[min_index] = index
 
-    return df_temp.loc[top_k_indices]
+    return df_temp.sort_values(by=target_column,ascending=False).head(k)
 
 
 def get_ranking_query(G, df, k, update_vars, target_column, condition=None, opt="fix"):
+    
+    if update_vars==None:
+        return df.sort_values(by=target_column,ascending=False).head(k)
     
     def divide_values(update_vars):
         return {key: 1/value for key, value in update_vars.items()}
@@ -1044,7 +1073,7 @@ def Greedy_Algo(G, df, k, target_column, vars_test,thresh_hold=0,condition=None,
             x_sd = np.abs(df[var].std() * force)*pos
             for i in range(max_iter):
                 x_up+=x_sd
-                new_rank=get_ranking_query(G, df, len(df), {var:x_up},                                     target_column,condition,opt).sort_values(by=target_column,ascending=False).head(k).index
+                new_rank=get_ranking_query(G, df, k, {var:x_up},                                     target_column,condition,opt).index
                 rank_result.append(new_rank)
                 
     elif opt=='multiply_by'or 'divided_by':
@@ -1059,7 +1088,7 @@ def Greedy_Algo(G, df, k, target_column, vars_test,thresh_hold=0,condition=None,
             x_sd = op_chang(1+np.abs(df[var].std() * force))
             for i in range(max_iter):
                 x_up*=x_sd
-                new_rank=get_ranking_query(G, df, len(df), {var:x_up}, target_column,condition,opt).sort_values(by=target_column,ascending=False).head(k).index
+                new_rank=get_ranking_query(G, df, k, {var:x_up}, target_column,condition,opt).index
                 rank_result.append(new_rank)
     else:
         print('invalid operator, operator must be add,subs,multiply_by and divided_by')
@@ -1372,7 +1401,7 @@ def Comp_Greedy_Algo_backdoor(row_indexes,G, df, k, target_column, vars_test,thr
             x_sd = np.abs(df[var].std() * force)*pos
             for i in range(max_iter):
                 x_up+=x_sd
-                updated_df=get_ranking_query(G, df, len(df), {var:x_up}, target_column, condition, opt).sort_values(by=target_column,ascending=False)
+                updated_df=get_ranking_query(G, df, len(df), {var:x_up}, target_column, condition, opt)
                 theta=updated_df[target_column].iloc[k-1]
                 prob_backdoor=get_prob_backdoor_opt(G, df, k, {var:x_up}, target_column, condition, opt, row_indexes, theta)
                 prob_result.append(prob_backdoor)
@@ -1389,7 +1418,7 @@ def Comp_Greedy_Algo_backdoor(row_indexes,G, df, k, target_column, vars_test,thr
             x_sd = op_chang(1+np.abs(df[var].std() * force))
             for i in range(max_iter):
                 x_up*=x_sd
-                updated_df=get_ranking_query(G, df, len(df), {var:x_up}, target_column, condition, opt).sort_values(by=target_column,ascending=False)
+                updated_df=get_ranking_query(G, df, len(df), {var:x_up}, target_column, condition, opt)
                 theta=updated_df[target_column].iloc[k-1] 
                 prob_backdoor=get_prob_backdoor_opt(G, df, k, {var:x_up}, target_column, condition, opt, row_indexes, theta)
                 prob_result.append(prob_backdoor)
@@ -1426,3 +1455,301 @@ def read_imdb_actor_data(path):
                       'movie': 2, 'short': 3, 'video': 4, 'videoGame': 4}
     df['titleType'] = df['titleType'].apply(lambda x: title_type_map.get(x, -1))
     return df
+
+
+def backdoor_adjustment_opt2(df, Y, y, A, a, Z):
+    df_A_a = df[df[A] == a]
+    grouped = df_A_a.groupby(Z).apply(lambda g: (g[Y] == y).sum() / len(g) if not g.empty else 0)
+    grouped = grouped[grouped > 0].reset_index()
+    grouped.rename({0: 'probs'}, axis=1, inplace=True)
+    grouped['Y_value'] = y
+    grouped[A] = a 
+    grouped['expected_value'] = grouped['Y_value']*grouped['probs']
+
+    return grouped
+
+
+
+def predict_backdoor_opt2(G, df, k, update_vars, target_column, condition, opt):
+    """
+    Use P(Y|do(X),Z) to estimate
+    """
+    updated_df = get_ranking_query(G, df, len(df), update_vars, target_column, condition, opt)
+    nodes = update_vars.keys()
+    results = []
+
+    for node in nodes:
+        bd_sets = find_backdoor_sets_opt(G, target_column, node)
+        for bd_set in bd_sets:
+            dom_y = updated_df[target_column].unique()
+            dom_node = updated_df[node].unique()
+            for d_y in dom_y:
+                for d_n in dom_node:
+                    result_df = backdoor_adjustment_opt2(updated_df, target_column, d_y, node, d_n, list(bd_set))
+                    if not result_df.empty:
+                        results.append(result_df)
+
+    merged_df = pd.concat(results, ignore_index=True)
+    flat_bd_sets = [col for subset in bd_sets for col in subset]+[node]
+    grouped_df = merged_df.groupby(flat_bd_sets).agg({'expected_value': 'sum'}).reset_index()
+
+    expected_values = []
+    for row_index, row in updated_df.iterrows():
+        match_conditions = {col: row[col] for col in flat_bd_sets}
+        matched_row = grouped_df[(grouped_df[list(match_conditions)] == pd.Series(match_conditions)).all(axis=1)]
+        if not matched_row.empty:
+            expected_value = matched_row['expected_value'].values[0]
+        expected_values.append(expected_value)
+
+    result_df = pd.DataFrame({'row_index': updated_df.index, 'expected_value': expected_values})
+    return result_df.sort_values(by='expected_value', ascending=False).head(k)
+
+def get_prob_backdoor_opt2(G, df, k, update_vars, target_column, condition, opt, row_indexes, theta):
+    """
+    Use P(Y|do(X),Z) to estimate
+    """
+    updated_df = get_ranking_query(G, df, len(df), update_vars, target_column, condition, opt)
+    nodes = update_vars.keys()
+    results = []
+    
+    for node in nodes:
+        bd_sets = find_backdoor_sets_opt(G, target_column, node)
+        for bd_set in bd_sets:
+            dom_y = updated_df[target_column].unique()
+            dom_node = updated_df[node].unique()
+            for d_y in dom_y:
+                for d_n in dom_node:
+                    result_df = backdoor_adjustment_opt2(updated_df, target_column, d_y, node, d_n, list(bd_set))
+                    if not result_df.empty:
+                        results.append(result_df)
+    merged_df = pd.concat(results, ignore_index=True)
+    flat_bd_sets = [col for subset in bd_sets for col in subset]+[node]
+    filtered_merged_df=merged_df[merged_df['Y_value']>=theta]
+    prob_df=filtered_merged_df.groupby(flat_bd_sets).agg({'probs': 'sum'}).reset_index()
+    
+    total_probs = []
+    for row_index in row_indexes:
+        row = updated_df.loc[row_index]                    
+        match_conditions = {col: row[col] for col in flat_bd_sets}
+        matched_row = prob_df[(prob_df[list(match_conditions)] == pd.Series(match_conditions)).all(axis=1)]
+        if not matched_row.empty:
+            total_prob = matched_row['probs'].values[0]
+        else:
+            total_prob=0
+        total_probs.append(total_prob)
+        
+    result_df = pd.DataFrame({'row_index': row_indexes, 'total_probs': total_probs})
+    return result_df['total_probs'].prod()
+
+
+def predict_backdoor_opt(G, df, k, update_vars, target_column, condition, opt):
+    updated_df = get_ranking_query(G, df, len(df), update_vars, target_column, condition, opt)
+    nodes = update_vars.keys()
+    results = []
+    ### only one node update each time
+    for node in nodes:
+        bd_sets = find_backdoor_sets_opt(G, target_column, node)
+        for bd_set in bd_sets:
+            dom_y = updated_df[target_column].unique()
+            dom_node = updated_df[node].unique()
+            for d_y in dom_y:
+                for d_n in dom_node:
+                    adjusted_prob = backdoor_adjustment_opt(updated_df, target_column, d_y, node, d_n, list(bd_set))
+                    results.append({
+                        target_column: d_y, 
+                        node: d_n, 
+                        'Z': ', '.join(bd_set), 
+                        'prob': adjusted_prob
+                    })
+    group_df = pd.DataFrame(results)
+    group_df['expected_value']=group_df['prob']*group_df[target_column]
+    prob_df = group_df.groupby([node]).agg({'expected_value': 'sum'}).reset_index()
+    
+    expected_values = []
+    for row_index, row in updated_df.iterrows():                  
+        match_conditions = row[node]
+        matched_row = prob_df[prob_df[node] == match_conditions]
+        if not matched_row.empty:
+            expected_value = matched_row['expected_value'].values[0]
+        else:
+            expected_value=0
+        expected_values.append(expected_value)
+        
+    result_df = pd.DataFrame({'row_index': updated_df.index, 'expected_value': expected_values})
+    return result_df.sort_values(by='expected_value', ascending=False).head(k)
+
+def get_backdoor_opt1(G, df, k, update_vars, target_column, condition, opt,row_indexes,theta):
+    updated_df = get_ranking_query(G, df, len(df), update_vars, target_column, condition, opt)
+    nodes = update_vars.keys()
+    results = []
+    ### only one node update each time
+    for node in nodes:
+        bd_sets = find_backdoor_sets_opt(G, target_column, node)
+        for bd_set in bd_sets:
+            dom_y = updated_df[target_column].unique()
+            dom_node = updated_df[node].unique()
+            for d_y in dom_y:
+                for d_n in dom_node:
+                    adjusted_prob = backdoor_adjustment_opt(updated_df, target_column, d_y, node, d_n, list(bd_set))
+                    results.append({
+                        target_column: d_y, 
+                        node: d_n, 
+                        'Z': ', '.join(bd_set), 
+                        'prob': adjusted_prob
+                    })
+    group_df = pd.DataFrame(results)
+    filtered_group_df = group_df[group_df[target_column] >= theta]
+    prob_df = filtered_group_df.groupby([node]).agg({'prob': 'sum'}).reset_index()
+    
+    total_probs = []
+    for row_index in row_indexes:
+        row = updated_df.loc[row_index]                    
+        match_conditions = row[node]
+        matched_row = prob_df[prob_df[node] == match_conditions]
+        if not matched_row.empty:
+            total_prob = matched_row['prob'].values[0]
+        else:
+            total_prob=0
+        total_probs.append(total_prob)
+    return np.prod(total_probs)
+
+def accuracy_topk_rank(pred_rank, true_rank):
+    if len(pred_rank) != len(true_rank):
+        raise ValueError("Both lists must be of the same length.")
+
+    correct_count = sum(p == t for p, t in zip(pred_rank, true_rank))
+    return correct_count / len(pred_rank)
+
+
+
+def accuracy_in_topk(pred_rank, true_rank):
+    if len(pred_rank) != len(true_rank):
+        raise ValueError("Both lists must be of the same length.")
+
+    correct_count = sum(p in true_rank for p in pred_rank)
+    return correct_count / len(pred_rank)
+
+def read_imdb_movie_actor_data(path):
+    df = pd.read_csv(path)
+    df['averageRating'] = round(df['averageRating'], 0)
+
+    def runtime_category(runtime):
+        if runtime <= 120: return 0
+        elif runtime <= 150: return 1
+        else: return 2
+    df['runtimeMinutes'] = df['runtimeMinutes'].apply(runtime_category)
+
+    def votes_category(votes):
+        if votes <= 10000: return 0
+        elif votes <= 50000: return 1
+        elif votes <= 100000: return 2
+        else: return 3
+    df['numVotes'] = df['numVotes'].astype(int).apply(votes_category)
+    
+    def startYear_category(year):
+        if year <= 2000: return 0
+        elif year <= 2010: return 1
+        elif year <= 2020: return 2
+        else: return 3
+    df['startYear'] = df['startYear'].astype(int).apply(startYear_category)
+
+    name_map = {'Scarlett Johansson': 0,
+            'Emma Mackey': 1,
+            'Margot Robbie': 2,
+            'Johnny Depp': 3,
+            'Jason Momoa': 4,
+            'Rinko Kikuchi': 5,
+            'Ben Kingsley': 6,
+            'Om Puri': 7}
+    
+    df['primaryName'] = df['primaryName'].apply(lambda x: name_map.get(x, -1))
+
+    return df
+
+def data_size_backdoor(G, df, k, update_vars, target_column, condition, opt, row_indexes, n_splits, random_state):
+    kf = KFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+    df_dropped = df.drop(row_indexes)
+    
+    folds = []
+    for _, test_index in kf.split(df_dropped):
+        fold_data = df_dropped.iloc[test_index]
+        folds.append(fold_data)
+    
+    selected_rows = df.loc[row_indexes]
+
+    data = pd.concat([selected_rows, folds[0]], axis=0)
+    
+    back_result = []
+    back2_result = []
+    back_result_len = []
+    for i in range(1, len(folds)):
+        data = pd.concat([data, folds[i]], axis=0)
+        
+        if condition and not set(condition.keys()).issubset(data.columns):
+            update_vars = None
+        
+        updated_df=get_ranking_query(G, data, len(data), update_vars, target_column, condition, opt).sort_values(by=target_column,ascending=False)
+        theta=updated_df[target_column].iloc[k-1]
+        back_result_len.append(len(updated_df))
+        back_result.append(get_prob_backdoor_opt(G, data, k, update_vars,
+                                                 target_column, condition, opt, row_indexes, theta))
+        
+        back2_result.append(get_prob_backdoor_opt2(G, data, k, update_vars,
+                                                 target_column, condition, opt, row_indexes, theta))
+        
+    return back_result_len,back_result,back2_result
+
+def k_range_backdoor(G, df, k, update_vars, target_column, condition, opt, row_indexes,end_k):
+    back_result=[]
+    back2_result = []
+    for z in range(k,end_k+1):
+        updated_df=get_ranking_query(G, df, len(df), update_vars, target_column, condition, opt)
+        theta=updated_df[target_column].iloc[z-1]
+        back_result.append(get_prob_backdoor_opt(G, df, z, update_vars,
+                                                 target_column, condition, opt, row_indexes, theta))
+        back2_result.append(get_prob_backdoor_opt2(G, data, k, update_vars,
+                                                 target_column, condition, opt, row_indexes, theta))
+    return back_result,back2_result
+
+
+def Comp_Greedy_Algo_backdoor_edited(row_indexes,G, df, k, target_column, vars_test,thresh_hold=0,condition=None,max_iter=100, opt="add",force=0.01):
+    prob_result=[]
+    prob_result2=[]
+    if opt=='add'or 'subs':
+        if opt=='add':
+            pos=1
+        else:
+            pos=-1
+        for var in vars_test:
+            x_up=0
+            x_sd = np.abs(df[var].std() * force)*pos
+            for i in range(max_iter):
+                x_up+=x_sd
+                updated_df=get_ranking_query(G, df, len(df), {var:x_up}, target_column, condition, opt)
+                theta=updated_df[target_column].iloc[k-1]
+                prob_backdoor=get_prob_backdoor_opt(G, df, k, {var:x_up}, target_column, condition, opt, row_indexes, theta)
+                prob_backdoor2=get_prob_backdoor_opt2(G, df, k, {var:x_up}, target_column, condition, opt, row_indexes, theta)
+                prob_result.append(prob_backdoor)
+                prob_result2.append(prob_backdoor2)
+                
+    elif opt=='multiply_by'or 'divided_by':
+        if opt=='divided_by':
+            def op_chang(x_sd):
+                return 1/x_sd
+        else:
+            def op_chang(x_sd):
+                return x_sd    
+        for var in vars_test:
+            x_up=0
+            x_sd = op_chang(1+np.abs(df[var].std() * force))
+            for i in range(max_iter):
+                x_up*=x_sd
+                updated_df=get_ranking_query(G, df, len(df), {var:x_up}, target_column, condition, opt)
+                theta=updated_df[target_column].iloc[k-1] 
+                prob_backdoor=get_prob_backdoor_opt(G, df, k, {var:x_up}, target_column, condition, opt, row_indexes, theta)
+                prob_backdoor2=get_prob_backdoor_opt2(G, df, k, {var:x_up}, target_column, condition, opt, row_indexes, theta)
+                prob_result.append(prob_backdoor)
+                prob_result2.append(prob_backdoor2)
+    else:
+        print('invalid operator, operator must be add,subs,multiply_by and divided_by')
+    return prob_result,prob_result2

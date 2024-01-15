@@ -1,0 +1,35 @@
+nconst,primaryName,birthYear,deathYear,primaryProfession,knownForTitle,tconst_x,averageRating,numVotes,tconst_y,titleType,primaryTitle,originalTitle,isAdult,startYear,endYear,runtimeMinutes,Musical,Comedy,Biography,Horror,Fantasy,History,Action,Sci-Fi,Adventure,Thriller,Mystery,Family,Crime,Drama,Romance
+nm0000136,Johnny Depp,1963,\N,"actor,producer,soundtrack",tt0325980,tt0325980,8.1,1186432,tt0325980,movie,Pirates of the Caribbean: The Curse of the Black Pearl,Pirates of the Caribbean: The Curse of the Black Pearl,0,2003,\N,143,0,0,0,0,1,0,1,0,1,0,0,0,0,0,0
+nm0000136,Johnny Depp,1963,\N,"actor,producer,soundtrack",tt0449088,tt0449088,7.1,681989,tt0449088,movie,Pirates of the Caribbean: At World's End,Pirates of the Caribbean: At World's End,0,2007,\N,169,0,0,0,0,1,0,1,0,1,0,0,0,0,0,0
+nm0000136,Johnny Depp,1963,\N,"actor,producer,soundtrack",tt0408236,tt0408236,7.3,382691,tt0408236,movie,Sweeney Todd: The Demon Barber of Fleet Street,Sweeney Todd: The Demon Barber of Fleet Street,0,2007,\N,116,1,0,0,1,0,0,0,0,0,0,0,0,0,1,0
+nm0000136,Johnny Depp,1963,\N,"actor,producer,soundtrack",tt0367594,tt0367594,6.7,513266,tt0367594,movie,Charlie and the Chocolate Factory,Charlie and the Chocolate Factory,0,2005,\N,115,0,1,0,0,0,0,0,0,1,0,0,1,0,0,0
+nm0001426,Ben Kingsley,1943,\N,"actor,soundtrack,producer",tt0083987,tt0083987,8.0,238386,tt0083987,movie,Gandhi,Gandhi,0,1982,\N,191,0,0,1,0,0,1,0,0,0,0,0,0,0,1,0
+nm0001426,Ben Kingsley,1943,\N,"actor,soundtrack,producer",tt0108052,tt0108052,9.0,1422164,tt0108052,movie,Schindler's List,Schindler's List,0,1993,\N,195,0,0,1,0,0,1,0,0,0,0,0,0,0,1,0
+nm0001426,Ben Kingsley,1943,\N,"actor,soundtrack,producer",tt0203119,tt0203119,7.3,65449,tt0203119,movie,Sexy Beast,Sexy Beast,0,2000,\N,89,0,0,0,0,0,0,0,0,0,1,0,0,1,1,0
+nm0001426,Ben Kingsley,1943,\N,"actor,soundtrack,producer",tt1300854,tt1300854,7.1,887185,tt1300854,movie,Iron Man 3,Iron Man Three,0,2013,\N,130,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0
+nm0001426,Ben Kingsley,1943,\N,"actor,soundtrack,producer",tt0107151,tt0107151,6.9,24548,tt0107151,movie,The House of the Spirits,The House of the Spirits,0,1993,\N,145,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1
+nm0424060,Scarlett Johansson,1984,\N,"actress,soundtrack,producer",tt0335266,tt0335266,7.7,479601,tt0335266,movie,Lost in Translation,Lost in Translation,0,2003,\N,102,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0
+nm0424060,Scarlett Johansson,1984,\N,"actress,soundtrack,producer",tt1798709,tt1798709,8.0,654979,tt1798709,movie,Her,Her,0,2013,\N,126,0,0,0,0,0,0,0,1,0,0,0,0,0,1,1
+nm0424060,Scarlett Johansson,1984,\N,"actress,soundtrack,producer",tt1441395,tt1441395,6.3,153879,tt1441395,movie,Under the Skin,Under the Skin,0,2013,\N,108,0,0,0,1,0,0,0,0,0,0,1,0,0,1,0
+nm0424060,Scarlett Johansson,1984,\N,"actress,soundtrack,producer",tt0848228,tt0848228,8.0,1442499,tt0848228,movie,The Avengers,The Avengers,0,2012,\N,143,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0
+nm0424060,Scarlett Johansson,1984,\N,"actress,soundtrack,producer",tt1219827,tt1219827,6.3,225125,tt1219827,movie,Ghost in the Shell,Ghost in the Shell,0,2017,\N,107,0,0,0,0,0,0,1,0,0,0,0,0,1,1,0
+nm0452860,Rinko Kikuchi,1981,\N,"actress,director,writer",tt0844286,tt0844286,6.7,52221,tt0844286,movie,The Brothers Bloom,The Brothers Bloom,0,2008,\N,114,0,1,0,0,0,0,1,0,1,0,0,0,0,0,0
+nm0452860,Rinko Kikuchi,1981,\N,"actress,director,writer",tt1663662,tt1663662,6.9,522962,tt1663662,movie,Pacific Rim,Pacific Rim,0,2013,\N,131,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0
+nm0452860,Rinko Kikuchi,1981,\N,"actress,director,writer",tt0449467,tt0449467,7.5,314247,tt0449467,movie,Babel,Babel,0,2006,\N,143,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0
+nm0452860,Rinko Kikuchi,1981,\N,"actress,director,writer",tt3263614,tt3263614,6.6,12286,tt3263614,movie,"Kumiko, The Treasure Hunter","Kumiko, the Treasure Hunter",0,2014,\N,105,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0
+nm0597388,Jason Momoa,1979,\N,"actor,producer,writer",tt5433140,tt5433140,5.8,104984,tt5433140,movie,Fast X,Fast X,0,2023,\N,141,0,0,0,0,0,0,1,0,1,0,0,0,1,0,0
+nm0597388,Jason Momoa,1979,\N,"actor,producer,writer",tt0974015,tt0974015,6.1,472640,tt0974015,movie,Justice League,Justice League,0,2017,\N,120,0,0,0,0,1,0,1,0,1,0,0,0,0,0,0
+nm0597388,Jason Momoa,1979,\N,"actor,producer,writer",tt1477834,tt1477834,6.8,506797,tt1477834,movie,Aquaman,Aquaman,0,2018,\N,143,0,0,0,0,1,0,1,0,1,0,0,0,0,0,0
+nm0597388,Jason Momoa,1979,\N,"actor,producer,writer",tt4334266,tt4334266,5.2,34824,tt4334266,movie,The Bad Batch,The Bad Batch,0,2016,\N,118,0,0,0,1,0,0,1,0,0,0,1,0,0,0,0
+nm0700875,Om Puri,1950,2017,"actor,miscellaneous,music_department",tt0111742,tt0111742,6.3,59521,tt0111742,movie,Wolf,Wolf,0,1994,\N,125,0,0,0,1,0,0,0,0,0,0,0,0,0,1,1
+nm0700875,Om Puri,1950,2017,"actor,miscellaneous,music_department",tt0166175,tt0166175,6.9,19871,tt0166175,movie,East Is East,East Is East,0,1999,\N,96,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0
+nm0700875,Om Puri,1950,2017,"actor,miscellaneous,music_department",tt0116409,tt0116409,6.8,65111,tt0116409,movie,The Ghost and the Darkness,The Ghost and the Darkness,0,1996,\N,110,0,0,0,0,0,0,0,0,1,1,0,0,0,1,0
+nm0700875,Om Puri,1950,2017,"actor,miscellaneous,music_department",tt2980648,tt2980648,7.3,86648,tt2980648,movie,The Hundred-Foot Journey,The Hundred-Foot Journey,0,2014,\N,122,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0
+nm3053338,Margot Robbie,1990,\N,"actress,producer,soundtrack",tt7713068,tt7713068,6.1,259314,tt7713068,movie,Birds of Prey,Birds of Prey and the Fantabulous Emancipation of One Harley Quinn,0,2020,\N,109,0,1,0,0,0,0,1,0,0,0,0,0,1,0,0
+nm3053338,Margot Robbie,1990,\N,"actress,producer,soundtrack",tt0993846,tt0993846,8.2,1535779,tt0993846,movie,The Wolf of Wall Street,The Wolf of Wall Street,0,2013,\N,180,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0
+nm3053338,Margot Robbie,1990,\N,"actress,producer,soundtrack",tt1386697,tt1386697,5.9,713095,tt1386697,movie,Suicide Squad,Suicide Squad,0,2016,\N,123,0,0,0,0,1,0,1,0,1,0,0,0,0,0,0
+nm3053338,Margot Robbie,1990,\N,"actress,producer,soundtrack",tt5580036,tt5580036,7.5,236785,tt5580036,movie,"I, Tonya","I, Tonya",0,2017,\N,119,0,1,1,0,0,0,0,0,0,0,0,0,0,1,0
+nm8076281,Emma Mackey,1996,\N,actress,tt10366514,tt10366514,6.2,6993,tt10366514,movie,Eiffel,Eiffel,0,2021,\N,108,0,0,1,0,0,1,0,0,0,0,0,0,0,1,0
+nm8076281,Emma Mackey,1996,\N,actress,tt7657566,tt7657566,6.3,179799,tt7657566,movie,Death on the Nile,Death on the Nile,0,2022,\N,127,0,0,0,0,0,0,0,0,0,0,1,0,1,1,0
+nm8076281,Emma Mackey,1996,\N,actress,tt1517268,tt1517268,7.0,405304,tt1517268,movie,Barbie,Barbie,0,2023,\N,114,0,1,0,0,1,0,0,0,1,0,0,0,0,0,0
+nm8076281,Emma Mackey,1996,\N,actress,tt12374656,tt12374656,6.8,7390,tt12374656,movie,Emily,Emily,0,2022,\N,130,0,0,1,0,0,1,0,0,0,0,0,0,0,1,0
