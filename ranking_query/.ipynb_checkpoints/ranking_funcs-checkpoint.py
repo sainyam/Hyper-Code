@@ -1707,7 +1707,7 @@ def k_range_backdoor(G, df, k, update_vars, target_column, condition, opt, row_i
         theta=updated_df[target_column].iloc[z-1]
         back_result.append(get_prob_backdoor_opt(G, df, z, update_vars,
                                                  target_column, condition, opt, row_indexes, theta))
-        back2_result.append(get_prob_backdoor_opt2(G, data, k, update_vars,
+        back2_result.append(get_prob_backdoor_opt2(G, df, k, update_vars,
                                                  target_column, condition, opt, row_indexes, theta))
     return back_result,back2_result
 
@@ -1753,3 +1753,41 @@ def Comp_Greedy_Algo_backdoor_edited(row_indexes,G, df, k, target_column, vars_t
     else:
         print('invalid operator, operator must be add,subs,multiply_by and divided_by')
     return prob_result,prob_result2
+
+def Comp_Greedy_Algo_backdoor2(row_indexes,G, df, k, target_column, vars_test,thresh_hold=0,condition=None,max_iter=100, opt="add",force=0.01):
+    prob_result=[]
+    prob_result2=[]
+    if opt=='add'or 'subs':
+        if opt=='add':
+            pos=1
+        else:
+            pos=-1
+        for var in vars_test:
+            x_up=0
+            x_sd = np.abs(df[var].std() * force)*pos
+            for i in range(max_iter):
+                x_up+=x_sd
+                updated_df=ranking_funcs.get_ranking_query(G, df, len(df), {var:x_up}, target_column, condition, opt)
+                theta=updated_df[target_column].iloc[k-1]
+                prob_backdoor2=ranking_funcs.get_prob_backdoor_opt2(G, df, k, {var:x_up}, target_column, condition, opt, row_indexes, theta)
+                prob_result2.append(prob_backdoor2)
+                
+    elif opt=='multiply_by'or 'divided_by':
+        if opt=='divided_by':
+            def op_chang(x_sd):
+                return 1/x_sd
+        else:
+            def op_chang(x_sd):
+                return x_sd    
+        for var in vars_test:
+            x_up=0
+            x_sd = op_chang(1+np.abs(df[var].std() * force))
+            for i in range(max_iter):
+                x_up*=x_sd
+                updated_df=ranking_funcs.get_ranking_query(G, df, len(df), {var:x_up}, target_column, condition, opt)
+                theta=updated_df[target_column].iloc[k-1] 
+                prob_backdoor2=ranking_funcs.get_prob_backdoor_opt2(G, df, k, {var:x_up}, target_column, condition, opt, row_indexes, theta)
+                prob_result2.append(prob_backdoor2)
+    else:
+        print('invalid operator, operator must be add,subs,multiply_by and divided_by')
+    return prob_result2k_range_backdoor
