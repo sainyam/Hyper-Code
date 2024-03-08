@@ -10,6 +10,7 @@ from collections import Counter
 from pgmpy.models import BayesianNetwork
 from pgmpy.inference.CausalInference import CausalInference
 from sklearn.model_selection import KFold
+from sklearn.ensemble import RandomForestRegressor
 
 ##packages need
 
@@ -78,18 +79,18 @@ def read_data(path):
                     processed.append(v)
             df[feat]=processed
             
-        if feat=='credit_amount':
-            processed=[]
-            for v in l:
-                if v<=1500:
-                    processed.append(0)
-                elif v<3000:
-                    processed.append(1)
-                elif v<5500:
-                    processed.append(2)
-                else:
-                    processed.append(3)
-            df[feat]=processed
+        # if feat=='credit_amount':
+        #     processed=[]
+        #     for v in l:
+        #         if v<=1500:
+        #             processed.append(0)
+        #         elif v<3000:
+        #             processed.append(1)
+        #         elif v<5500:
+        #             processed.append(2)
+        #         else:
+        #             processed.append(3)
+        #     df[feat]=processed
         if feat=='purpose':
             l=[]
             for v in df['purpose']:
@@ -147,6 +148,28 @@ def get_new_G(G,df):
         
     return new_G
 
+def get_new_G_rf(G, df):
+    """
+    G: the causal graph
+    df: the dataframe
+    """
+    df = df.replace([np.inf, -np.inf], np.nan).dropna()
+    col1s = []
+    col2s = []
+    for u, v in G.edges:
+        col1s.append(u)
+        col2s.append(v)
+    new_G = nx.DiGraph()
+    for i in range(len(col1s)):
+        X = df[[col1s[i]]]  
+        y = df[col2s[i]]  #
+        model = RandomForestRegressor()  
+        model.fit(X, y)
+        weight = model.feature_importances_[0]
+        new_G.add_edge(col1s[i], col2s[i], weight=weight)
+        
+    return new_G
+
 
 def get_new_G_combined(G, df):
     """
@@ -168,6 +191,31 @@ def get_new_G_combined(G, df):
 
             for pred in predecessors:
                 weight = model.params[pred]
+                new_G.add_edge(pred, node, weight=weight)
+
+    return new_G
+
+def get_new_G_combined_rf(G, df):
+    """
+    G: the causal graph (networkx DiGraph)
+    df: the dataframe
+    """
+    df = df.replace([np.inf, -np.inf], np.nan).dropna()
+    new_G = nx.DiGraph()
+
+    for node in G.nodes():
+        predecessors = list(G.predecessors(node))
+
+        if predecessors:
+            X = df[predecessors]
+            y = df[node]
+
+            model = RandomForestRegressor()
+            model.fit(X, y)
+
+            feature_importances = model.feature_importances_
+            for idx, pred in enumerate(predecessors):
+                weight = feature_importances[idx]
                 new_G.add_edge(pred, node, weight=weight)
 
     return new_G
@@ -821,25 +869,23 @@ def comp_rank_k(df, y, k):
     """
     df: dataframe
     y: the target node
-    k: numbers of element in a comparision,[e1,e2,...ek]
+    k: numbers of elements in a comparison, [e1,e2,...ek]
     """
-    length = len(df.index)
+    original_indices = df.index.tolist()
     scores = df[y].tolist()
-    prob_df = pd.DataFrame(0, index=df.index, columns=range(1, k+1))
-    prob_df['row_index'] = prob_df.index
-    cols = prob_df.columns.tolist()
-    cols = cols[-1:] + cols[:-1]
+    prob_df = pd.DataFrame(0, index=original_indices, columns=range(1, k+1)) 
+    prob_df['row_index'] = original_indices
+    cols = ['row_index'] + [col for col in prob_df.columns if col != 'row_index']
     prob_df = prob_df[cols]
     
     for rank in range(1, k+1):
-        for i, score in enumerate(scores):
+        for idx, score in zip(original_indices, scores):  
             higher_counts = sum(1 for s in scores if s > score)
             same_counts = sum(1 for s in scores if s == score)
             if higher_counts < rank <= higher_counts + same_counts:
-                prob_df.loc[i, rank] = 1 / same_counts
+                prob_df.at[idx, rank] = 1 / same_counts 
     
     return prob_df
-
 
 def filter_prob_df(df):
     """
@@ -981,7 +1027,7 @@ def filter_prob_df_grouped(df):
 
 
 def base_line(df,k):
-    prob=1/(m.perm(len(df), k))
+    prob=1/(m.comb(len(df), k))
     return prob
 
 def cal_top_k_tuples(rank, df):
@@ -1666,7 +1712,7 @@ def read_imdb_movie_actor_data(path):
 
     return df
 
-def data_size_backdoor(G, df, k, update_vars, target_column, condition, opt, row_indexes, n_splits, random_state):
+def data_size_backdoor(G, G_method, df, k, update_vars, target_column, condition, opt, row_indexes, n_splits, random_state):
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=random_state)
     df_dropped = df.drop(row_indexes)
     
@@ -1699,7 +1745,8 @@ def data_size_backdoor(G, df, k, update_vars, target_column, condition, opt, row
         
     return back_result_len,back_result,back2_result
 
-def k_range_backdoor(G, df, k, update_vars, target_column, condition, opt, row_indexes,end_k):
+
+def k_range_backdoor(G, G_method, df, k, update_vars, target_column, condition, opt, row_indexes,end_k):
     back_result=[]
     back2_result = []
     for z in range(k,end_k+1):
@@ -1791,3 +1838,53 @@ def Comp_Greedy_Algo_backdoor2(row_indexes,G, df, k, target_column, vars_test,th
     else:
         print('invalid operator, operator must be add,subs,multiply_by and divided_by')
     return prob_result2k_range_backdoor
+
+def factor_imdb(df):
+
+    def runtime_category(runtime):
+        if runtime <= 120: return 0
+        elif runtime <= 150: return 1
+        else: return 2
+    df['runtimeMinutes'] = df['runtimeMinutes'].apply(runtime_category)
+
+    def votes_category(votes):
+        if votes <= 10000: return 0
+        elif votes <= 50000: return 1
+        elif votes <= 100000: return 2
+        else: return 3
+    df['numVotes'] = df['numVotes'].astype(int).apply(votes_category)
+    
+    def startYear_category(year):
+        if year <= 2000: return 0
+        elif year <= 2010: return 1
+        elif year <= 2020: return 2
+        else: return 3
+    df['startYear'] = df['startYear'].astype(int).apply(startYear_category)
+
+    name_map = {'Scarlett Johansson': 0,
+            'Emma Mackey': 1,
+            'Margot Robbie': 2,
+            'Johnny Depp': 3,
+            'Jason Momoa': 4,
+            'Rinko Kikuchi': 5,
+            'Ben Kingsley': 6,
+            'Om Puri': 7,
+            'Jennifer Aniston':8,
+            'Angelina Jolie': 9,
+            'Taylor Kitsch':10,
+            'Chris Hemsworth':11,}
+    
+    df['primaryName'] = df['primaryName'].apply(lambda x: name_map.get(x, -1))
+    
+    genre_map = {'Comedy': 0, 
+                 'Action & Adventure': 1, 
+                 'Drama': 2, 
+                 'Documentary & Biography': 3,
+                 'Horror & Thriller': 4, 
+                 'Family & Animation': 5, 
+                 'Other': 6, 
+                 'Crime & Mystery': 7}
+    
+    df['genres'] = df['genres'].apply(lambda x: genre_map.get(x, -1)) 
+
+    return df
