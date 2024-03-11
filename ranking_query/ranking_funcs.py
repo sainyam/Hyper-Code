@@ -1814,9 +1814,9 @@ def Comp_Greedy_Algo_backdoor2(row_indexes,G, df, k, target_column, vars_test,th
             x_sd = np.abs(df[var].std() * force)*pos
             for i in range(max_iter):
                 x_up+=x_sd
-                updated_df=ranking_funcs.get_ranking_query(G, df, len(df), {var:x_up}, target_column, condition, opt)
+                updated_df=get_ranking_query(G, df, len(df), {var:x_up}, target_column, condition, opt)
                 theta=updated_df[target_column].iloc[k-1]
-                prob_backdoor2=ranking_funcs.get_prob_backdoor_opt2(G, df, k, {var:x_up}, target_column, condition, opt, row_indexes, theta)
+                prob_backdoor2=get_prob_backdoor_opt2(G, df, k, {var:x_up}, target_column, condition, opt, row_indexes, theta)
                 prob_result2.append(prob_backdoor2)
                 
     elif opt=='multiply_by'or 'divided_by':
@@ -1831,13 +1831,13 @@ def Comp_Greedy_Algo_backdoor2(row_indexes,G, df, k, target_column, vars_test,th
             x_sd = op_chang(1+np.abs(df[var].std() * force))
             for i in range(max_iter):
                 x_up*=x_sd
-                updated_df=ranking_funcs.get_ranking_query(G, df, len(df), {var:x_up}, target_column, condition, opt)
+                updated_df=get_ranking_query(G, df, len(df), {var:x_up}, target_column, condition, opt)
                 theta=updated_df[target_column].iloc[k-1] 
-                prob_backdoor2=ranking_funcs.get_prob_backdoor_opt2(G, df, k, {var:x_up}, target_column, condition, opt, row_indexes, theta)
+                prob_backdoor2=get_prob_backdoor_opt2(G, df, k, {var:x_up}, target_column, condition, opt, row_indexes, theta)
                 prob_result2.append(prob_backdoor2)
     else:
         print('invalid operator, operator must be add,subs,multiply_by and divided_by')
-    return prob_result2k_range_backdoor
+    return prob_result2
 
 def factor_imdb(df):
 
