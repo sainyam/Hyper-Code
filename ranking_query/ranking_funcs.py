@@ -129,6 +129,15 @@ def read_data(path):
 
 ## this function is from hyper
 
+def create_G(edge_lst):
+    """
+    input:
+    edge_lst: the list of edges example [('a','b'),('b','c')]
+    """
+    G = nx.DiGraph()
+    G.add_edges_from(edge_lst)
+    return G
+
 def get_new_G(G,df):
     """
     G: the causal graph
@@ -527,7 +536,7 @@ def stable_ranking_opt(G, df, k, update_vars, target_column, condition=None, max
         if not upper_bound_changed:
             x_val += x_sd
             cur_rank_upper = ranking_query(G, df, k, {x: x_val}, target_column, condition).index
-            if not np.array_equal(cur_rank_upper, rank):
+            if not np.array_equal(sorted(cur_rank_upper), sorted(rank)):
                 x_upper = x_val
                 upper_bound_changed = True
                 x_upper_iter = i
@@ -535,7 +544,7 @@ def stable_ranking_opt(G, df, k, update_vars, target_column, condition=None, max
         if not lower_bound_changed:
             x_val_lb -= x_sd
             cur_rank_lower = ranking_query(G, df, k, {x: x_val_lb}, target_column, condition).index
-            if not np.array_equal(cur_rank_lower, rank):
+            if not np.array_equal(sorted(cur_rank_upper), sorted(rank)):
                 x_lower = x_val_lb 
                 lower_bound_changed = True
                 x_lower_iter = i
@@ -564,7 +573,7 @@ def stable_ranking_opt_multi(G, df, k, update_vars, target_column, condition=Non
         if not upper_bound_changed:
             x_val *= x_sd
             cur_rank_upper = ranking_query_multi(G, df, k, {x: x_val}, target_column, condition).index
-            if not np.array_equal(cur_rank_upper, rank):
+            if not np.array_equal(sorted(cur_rank_upper), sorted(rank)):
                 x_upper = x_val 
                 upper_bound_changed = True
                 x_upper_iter = i
@@ -572,7 +581,7 @@ def stable_ranking_opt_multi(G, df, k, update_vars, target_column, condition=Non
         if not lower_bound_changed:
             x_val_lb /= x_sd
             cur_rank_lower = ranking_query_multi(G, df, k, {x: x_val_lb}, target_column, condition).index
-            if not np.array_equal(cur_rank_lower, rank):
+            if not np.array_equal(sorted(cur_rank_upper), sorted(rank)):
                 x_lower = x_val_lb 
                 lower_bound_changed = True
                 x_lower_iter = i
@@ -602,7 +611,7 @@ def stable_ranking_opt_add(G, df, k, update_vars, target_column, condition=None,
         if not upper_bound_changed:
             x_val += x_sd
             cur_rank_upper = ranking_query_add(G, df, k, {x: x_val}, target_column, condition).index
-            if not np.array_equal(cur_rank_upper, rank):
+            if not np.array_equal(sorted(cur_rank_upper), sorted(rank)):
                 x_upper = x_val 
                 upper_bound_changed = True
                 x_upper_iter = i
@@ -610,7 +619,7 @@ def stable_ranking_opt_add(G, df, k, update_vars, target_column, condition=None,
         if not lower_bound_changed:
             x_val_lb -= x_sd
             cur_rank_lower = ranking_query_add(G, df, k, {x: x_val_lb}, target_column, condition).index
-            if not np.array_equal(cur_rank_lower, rank):
+            if not np.array_equal(sorted(cur_rank_upper), sorted(rank)):
                 x_lower = x_val_lb
                 lower_bound_changed = True
                 x_lower_iter = i
@@ -663,7 +672,7 @@ def test_revert_ranking_rec(G, df, k, update_vars, target_column, condition=None
         if x_val_upper is not None and bond_check=='uper' and upper_bound_changed is False:
             x_val_upper += x_sd
             cur_rank_upper = ranking_query(G, df, k, {x: x_val_upper}, target_column, condition).index
-            if np.array_equal(cur_rank_upper, rank):
+            if not np.array_equal(sorted(cur_rank_upper), sorted(rank)):
                 upper_bound_changed = True
                 print([x_val_upper,x_upper_iter+i,"update upper"])
                 x_pre=x_val_upper
@@ -672,7 +681,7 @@ def test_revert_ranking_rec(G, df, k, update_vars, target_column, condition=None
         if x_val_lower is not None and bond_check=='lower' and lower_bound_changed is False:
             x_val_lower -= x_sd
             cur_rank_upper = ranking_query(G, df, k, {x: x_val_lower}, target_column, condition).index
-            if np.array_equal(cur_rank_upper, rank):
+            if not np.array_equal(sorted(cur_rank_upper), sorted(rank)):
                 lower_bound_changed=True
                 print([x_val_lower,x_lower_iter+i,"update lower"])
                 x_pre=x_val_lower
@@ -709,7 +718,7 @@ def test_revert_ranking_rec_multi(G, df, k, update_vars, target_column, conditio
         if x_val_upper is not None and bond_check=='uper' and upper_bound_changed is False:
             x_val_upper *= x_sd
             cur_rank_upper = ranking_query_multi(G, df, k, {x: x_val_upper}, target_column, condition).index
-            if np.array_equal(cur_rank_upper, rank):
+            if not np.array_equal(sorted(cur_rank_upper), sorted(rank)):
                 upper_bound_changed = True
                 print([x_val_upper,x_upper_iter+i,"update upper"])
                 x_pre=x_val_upper
@@ -718,7 +727,7 @@ def test_revert_ranking_rec_multi(G, df, k, update_vars, target_column, conditio
         if x_val_lower is not None and bond_check=='lower' and lower_bound_changed is False:
             x_val_lower /= x_sd
             cur_rank_upper = ranking_query_multi(G, df, k, {x: x_val_lower}, target_column, condition).index
-            if np.array_equal(cur_rank_upper, rank):
+            if not np.array_equal(sorted(cur_rank_upper), sorted(rank)):
                 lower_bound_changed=True
                 print([x_val_lower,x_lower_iter+i,"update lower"])
                 x_pre=x_val_lower
@@ -755,7 +764,7 @@ def test_revert_ranking_rec_add(G, df, k, update_vars, target_column, condition=
         if x_val_upper is not None and bond_check=='uper' and upper_bound_changed is False:
             x_val_upper += x_sd
             cur_rank_upper = ranking_query_add(G, df, k, {x: x_val_upper}, target_column, condition).index
-            if np.array_equal(cur_rank_upper, rank):
+            if not np.array_equal(sorted(cur_rank_upper), sorted(rank)):
                 upper_bound_changed = True
                 print([x_val_upper,x_upper_iter+i,"update upper"])
                 x_pre=x_val_upper
@@ -764,7 +773,7 @@ def test_revert_ranking_rec_add(G, df, k, update_vars, target_column, condition=
         if x_val_lower is not None and bond_check=='lower' and lower_bound_changed is False:
             x_val_lower -= x_sd
             cur_rank_upper = ranking_query_add(G, df, k, {x: x_val_lower}, target_column, condition).index
-            if np.array_equal(cur_rank_upper, rank):
+            if not np.array_equal(sorted(cur_rank_upper), sorted(rank)):
                 lower_bound_changed=True
                 print([x_val_lower,x_lower_iter+i,"update lower"])
                 x_pre=x_val_lower
@@ -1075,28 +1084,28 @@ def backdoor_adjustment_opt(df, Y, y, A, a, Z):
 
     return prob
 
-def get_prob_backdoor_opt(df, cgm, y):
-    nodes = cgm.graph.nodes
-    results = [] 
-    for node in nodes:
-        if node != y:
-            bd_sets = find_backdoor_sets_opt(cgm, y, node)
-            for bd_set in bd_sets:
-                dom_y = df[y].unique()
-                dom_node = df[node].unique()
-                for d_y in dom_y:
-                    for d_n in dom_node:
-                        adjusted_prob = backdoor_adjustment_opt(df, y, d_y, node, d_n, list(bd_set))
-                        results.append({
-                            'Y': y, 
-                            'Y_value': d_y, 
-                            'X': node, 
-                            'X_value': d_n, 
-                            'Z': ', '.join(bd_set), 
-                            'prob': adjusted_prob
-                        })
-    results_df = pd.DataFrame(results)
-    return results_df
+# def get_prob_backdoor_opt(df, cgm, y):
+#     nodes = cgm.graph.nodes
+#     results = [] 
+#     for node in nodes:
+#         if node != y:
+#             bd_sets = find_backdoor_sets_opt(cgm, y, node)
+#             for bd_set in bd_sets:
+#                 dom_y = df[y].unique()
+#                 dom_node = df[node].unique()
+#                 for d_y in dom_y:
+#                     for d_n in dom_node:
+#                         adjusted_prob = backdoor_adjustment_opt(df, y, d_y, node, d_n, list(bd_set))
+#                         results.append({
+#                             'Y': y, 
+#                             'Y_value': d_y, 
+#                             'X': node, 
+#                             'X_value': d_n, 
+#                             'Z': ', '.join(bd_set), 
+#                             'prob': adjusted_prob
+#                         })
+#     results_df = pd.DataFrame(results)
+#     return results_df
 
 def get_lst_prob(lsts):
     flat_lsts = [list(lst) for lst in lsts]
