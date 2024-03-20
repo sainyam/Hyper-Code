@@ -138,6 +138,13 @@ def create_G(edge_lst):
     G.add_edges_from(edge_lst)
     return G
 
+def draw_G(G):
+    """
+    draw the causal graph
+    """
+    layout = nx.circular_layout(G)
+    nx.draw(G, with_labels=True, node_color='skyblue', node_size=2500, edge_color='gray', arrowsize=20, pos=layout)
+
 def get_new_G(G,df):
     """
     G: the causal graph
@@ -517,6 +524,14 @@ def get_ranking_query_prob(G, df, k, update_vars, target_column, condition=None,
     }
 
     return options.get(opt, lambda: 'Invalid operator, operator must be one of "fix", "multiply_by", "divided_by", "add", and "subs"')()
+
+
+def get_top_k_ranking_query_prob(G, df, k, update_vars, target_column,row_indexes, condition=None, opt="fix"):
+    tok_k_prob_df=ranking_funcs.get_ranking_query_prob(G, df, k, update_vars, target_column, condition=None, opt="fix")
+    topk_ranking_probs=ranking_funcs.filter_prob_df(tok_k_prob_df)
+    for idx in row_indexes:
+        if idx in topk_ranking_probs.index:
+            print(topk_ranking_probs.loc[idx])
 
 def stable_ranking_opt(G, df, k, update_vars, target_column, condition=None, max_iter=100):
     i = 0
@@ -1084,29 +1099,6 @@ def backdoor_adjustment_opt(df, Y, y, A, a, Z):
 
     return prob
 
-# def get_prob_backdoor_opt(df, cgm, y):
-#     nodes = cgm.graph.nodes
-#     results = [] 
-#     for node in nodes:
-#         if node != y:
-#             bd_sets = find_backdoor_sets_opt(cgm, y, node)
-#             for bd_set in bd_sets:
-#                 dom_y = df[y].unique()
-#                 dom_node = df[node].unique()
-#                 for d_y in dom_y:
-#                     for d_n in dom_node:
-#                         adjusted_prob = backdoor_adjustment_opt(df, y, d_y, node, d_n, list(bd_set))
-#                         results.append({
-#                             'Y': y, 
-#                             'Y_value': d_y, 
-#                             'X': node, 
-#                             'X_value': d_n, 
-#                             'Z': ', '.join(bd_set), 
-#                             'prob': adjusted_prob
-#                         })
-#     results_df = pd.DataFrame(results)
-#     return results_df
-
 def get_lst_prob(lsts):
     flat_lsts = [list(lst) for lst in lsts]
     lst_counts = Counter(map(tuple, flat_lsts)) 
@@ -1259,57 +1251,6 @@ def noisy_causal(G, df, k, target_column,constr, vars_test,thresh_hold=0,conditi
         print('invalid operator, operator must be add,subs,multiply_by and divided_by')
     
 #########
-
-
-
-def get_row_prob_back(prob_df, df, row_index, y, theta):
-    row = df.iloc[row_index]
-    Z_groups = []
-    prob_groups = []
-
-    for z in prob_df['Z'].unique():
-        z_relevant_probs = prob_df[
-            (prob_df['Z'] == z) & 
-            (prob_df['Y'] == y) & 
-            (prob_df['Y_value'] >= theta)
-        ]
-        if len(z_relevant_probs)==0:
-            Z_groups.append(z)
-            prob_groups.append(0)
-            
-        else:
-            x_values_in_z_group = z_relevant_probs['X'].unique()
-            prob_product = 1
-            for x in x_values_in_z_group:
-                if x in row.index:  
-                    x_value = row[x]
-                    x_prob = z_relevant_probs[
-                    (z_relevant_probs['X'] == x) & 
-                    (z_relevant_probs['X_value'] == x_value)]['prob'].sum()
-                    prob_product *= x_prob
-            Z_groups.append(z)
-            prob_groups.append(prob_product)
-
-    return pd.DataFrame({'backdoor_path':Z_groups, 'prob':prob_groups})
-
-
-def rec_row_prob_back(df, row_indexes, theta, cgm, y):
-    prob_df = get_prob_backdoor_opt(df, cgm, y)
-
-    total_prob = None
-    backdoor_path = None
-
-    for row_index in row_indexes:
-        row_prob_df = get_row_prob_back(prob_df, df, row_index, y, theta)
-        row_total_prob = row_prob_df['prob'].astype(float).to_numpy()
-
-        if total_prob is None:
-            total_prob = row_total_prob
-        else:
-            total_prob *= row_total_prob
-        backdoor_path = row_prob_df['backdoor_path']
-
-    return pd.DataFrame({'prob': total_prob, 'backdoor_path': backdoor_path})
 
 
 
