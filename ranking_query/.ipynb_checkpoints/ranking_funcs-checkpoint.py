@@ -11,7 +11,7 @@ from pgmpy.models import BayesianNetwork
 from pgmpy.inference.CausalInference import CausalInference
 from sklearn.model_selection import KFold
 from sklearn.ensemble import RandomForestRegressor
-
+from itertools import combinations
 ##packages need
 
 def read_data(path):
@@ -235,6 +235,55 @@ def get_new_G_combined_rf(G, df):
                 new_G.add_edge(pred, node, weight=weight)
 
     return new_G
+
+def draw_G_step_by_step(G):
+    """
+    Draw the causal graph with edges appearing one by one and create a GIF.
+    
+    Parameters:
+    - G: A networkx graph
+    
+    Returns:
+    - gif_path: The path to the created GIF file showing the graph's construction.
+    """
+    # Create a directory to save our frames
+    frames_dir = "graph_frames"
+    os.makedirs(frames_dir, exist_ok=True)
+    
+    # Get a list of edges so we can add them one by one
+    edges = list(G.edges())
+    layout = nx.circular_layout(G)
+    
+    # Draw the graph step by step
+    for i in range(len(edges) + 1):
+        plt.figure(figsize=(6, 6))
+        # Draw nodes and edges up to the current iteration
+        nx.draw(G, with_labels=True, node_color='skyblue', node_size=2500, edge_color='gray', arrowsize=20, pos=layout, edgelist=edges[:i])
+        
+        # Draw edge labels for the current subset of edges
+        edge_labels = {(u, v): f"{data['weight']:.2f}" for u, v, data in G.edges(data=True) if (u, v) in edges[:i]}
+        nx.draw_networkx_edge_labels(G, pos=layout, edge_labels=edge_labels)
+        
+        # Save the frame
+        frame_path = os.path.join(frames_dir, f"frame_{i:04d}.png")
+        plt.savefig(frame_path)
+        plt.close()
+    
+    # Create GIF
+    images = []
+    for filename in sorted(os.listdir(frames_dir)):
+        if filename.endswith('.png'):
+            frame_path = os.path.join(frames_dir, filename)
+            images.append(imageio.imread(frame_path))
+    gif_path = "graph_animation.gif"
+    imageio.mimsave(gif_path, images, fps=1)
+
+    # Cleanup: remove the frames and the directory
+    for filename in os.listdir(frames_dir):
+        os.remove(os.path.join(frames_dir, filename))
+    os.rmdir(frames_dir)
+    
+    return gif_path
 
 def adjust_node(node, delta, df_temp, G, condition_mask, updated_val, is_first_iteration=True):
     """
@@ -1326,63 +1375,39 @@ def backdoor_adjustment_opt(df, Y, y, A, a, Z):
 
 
 
-def get_prob_backdoor_opt(G, df, k, update_vars, target_column, condition, opt, row_indexes, theta):
-    updated_df = get_ranking_query(G, df, len(df), update_vars, target_column, condition, opt)
-    nodes = update_vars.keys()
+def get_prob_backdoor_opt(G, df, k, update_vars, target_column, condition, opt, row_indexes,theta):
+    ### get the updated dataframe
+    updated_df = ranking_funcs.get_ranking_query(G, df, len(df), update_vars, target_column, condition, opt)
+    ### the updated variable
+    node = list(update_vars.keys())[0]
     results = []
-    
-    for node in nodes:
-        bd_sets = find_backdoor_sets_opt(G, target_column, node)
-        for bd_set in bd_sets:
-            dom_y = updated_df[target_column].unique()
-            dom_node = updated_df[node].unique()
-            for d_y in dom_y:
-                for d_n in dom_node:
-                    adjusted_prob = backdoor_adjustment_opt(updated_df, target_column, d_y, node, d_n, list(bd_set))
-                    results.append({
-                        'Y': target_column, 
-                        'Y_value': d_y, 
-                        'X': node, 
-                        'X_value': d_n, 
-                        'Z': ', '.join(bd_set), 
-                        'prob': adjusted_prob
-                    })
+    ### find the one of the backdoor set of updated variable
+    bd_set = ranking_funcs.find_backdoor_sets_opt(G, target_column, node)[0]
+    dom_y = updated_df[target_column].unique()
+    dom_node = updated_df[node].unique()
+    for d_y in dom_y:
+        for d_n in dom_node:
+            adjusted_prob = ranking_funcs.backdoor_adjustment_opt(updated_df, target_column, d_y, node, d_n, list(bd_set))
+            results.append({
+                'Y': target_column, 
+                'Y_value': d_y, 
+                'X': node, 
+                'X_value': d_n, 
+                'Z': ', '.join(bd_set), 
+                'prob': adjusted_prob
+            })
+    ## get the probability dataframe
     prob_df = pd.DataFrame(results)
     
-    total_prob = None
-    backdoor_path = None
+    z_relevant_probs = prob_df[(prob_df['Y_value'] >= theta)]
+    prob_groups = []
     for row_index in row_indexes:
         row = updated_df.loc[row_index]                    
-        prob_groups = []
-        Z_groups = []
-        for z in prob_df['Z'].unique():
-            z_relevant_probs = prob_df[
-                (prob_df['Z'] == z) & 
-                (prob_df['Y'] == target_column) & 
-                (prob_df['Y_value'] >= theta)]
-            Z_groups.append(z)
-            prob_sum = 0
-            for x in prob_df['X'].unique():
-                if x in row.index:  
-                    x_value = row[x]
-                    prob_sum += z_relevant_probs[
-                        (z_relevant_probs['X'] == x) & 
-                        (z_relevant_probs['X_value'] == x_value)]['prob'].sum()
-            prob_groups.append(prob_sum)
-
-        row_prob_df = pd.DataFrame({'backdoor_path':Z_groups, 'prob':prob_groups})
-        row_total_prob = row_prob_df['prob'].astype(float).to_numpy()
-
-        if total_prob is None:
-            total_prob = row_total_prob
-        else:
-            total_prob *= row_total_prob
-        backdoor_path = row_prob_df['backdoor_path'].to_list()
-
-    if total_prob is None:
-        return pd.DataFrame()
-    final_df = pd.DataFrame({'prob': total_prob, 'backdoor_path': backdoor_path})
-    return final_df['prob']
+        x_value = row[node]
+        prob_sum = z_relevant_probs[(z_relevant_probs['X_value'] == x_value)]['prob'].sum()
+        prob_groups.append(prob_sum)
+        
+    return m.prod(prob_groups)
 
 def Comp_Greedy_Algo_backdoor(row_indexes,G, df, k, target_column, vars_test,thresh_hold=0,condition=None,max_iter=100, opt="add",force=0.01):
     prob_result=[]
@@ -1471,19 +1496,16 @@ def predict_backdoor_opt2(G, df, k, update_vars, target_column, condition, opt):
     Use P(Y|do(X),Z) to estimate
     """
     updated_df = get_ranking_query(G, df, len(df), update_vars, target_column, condition, opt)
-    nodes = update_vars.keys()
+    node = list(update_vars.keys())[0]
     results = []
-
-    for node in nodes:
-        bd_sets = find_backdoor_sets_opt(G, target_column, node)
-        for bd_set in bd_sets:
-            dom_y = updated_df[target_column].unique()
-            dom_node = updated_df[node].unique()
-            for d_y in dom_y:
-                for d_n in dom_node:
-                    result_df = backdoor_adjustment_opt2(updated_df, target_column, d_y, node, d_n, list(bd_set))
-                    if not result_df.empty:
-                        results.append(result_df)
+    bd_set = ranking_funcs.find_backdoor_sets_opt(G, target_column, node)[0]
+    dom_y = updated_df[target_column].unique()
+    dom_node = updated_df[node].unique()
+    for d_y in dom_y:
+        for d_n in dom_node:
+            result_df = backdoor_adjustment_opt2(updated_df, target_column, d_y, node, d_n, list(bd_set))
+            if not result_df.empty:
+                results.append(result_df)
 
     merged_df = pd.concat(results, ignore_index=True)
     flat_bd_sets = [col for subset in bd_sets for col in subset]+[node]
@@ -1500,24 +1522,22 @@ def predict_backdoor_opt2(G, df, k, update_vars, target_column, condition, opt):
     result_df = pd.DataFrame({'row_index': updated_df.index, 'expected_value': expected_values})
     return result_df.sort_values(by='expected_value', ascending=False).head(k)
 
+
 def get_prob_backdoor_opt2(G, df, k, update_vars, target_column, condition, opt, row_indexes, theta):
     """
     Use P(Y|do(X),Z) to estimate
     """
     updated_df = get_ranking_query(G, df, len(df), update_vars, target_column, condition, opt)
-    nodes = update_vars.keys()
+    node = list(update_vars.keys())[0]
     results = []
-    
-    for node in nodes:
-        bd_sets = find_backdoor_sets_opt(G, target_column, node)
-        for bd_set in bd_sets:
-            dom_y = updated_df[target_column].unique()
-            dom_node = updated_df[node].unique()
-            for d_y in dom_y:
-                for d_n in dom_node:
-                    result_df = backdoor_adjustment_opt2(updated_df, target_column, d_y, node, d_n, list(bd_set))
-                    if not result_df.empty:
-                        results.append(result_df)
+    bd_set = ranking_funcs.find_backdoor_sets_opt(G, target_column, node)[0]
+    dom_y = updated_df[target_column].unique()
+    dom_node = updated_df[node].unique()
+    for d_y in dom_y:
+        for d_n in dom_node:
+            result_df = backdoor_adjustment_opt2(updated_df, target_column, d_y, node, d_n, list(bd_set))
+            if not result_df.empty:
+                results.append(result_df)
     merged_df = pd.concat(results, ignore_index=True)
     flat_bd_sets = [col for subset in bd_sets for col in subset]+[node]
     filtered_merged_df=merged_df[merged_df['Y_value']>=theta]
